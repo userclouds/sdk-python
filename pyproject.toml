@@ -10,6 +10,18 @@ version = "1.0.3"
 description = "Python SDK for UserClouds"
 authors = [{ name = "Real Python", email = "info@realpython.com" }]
 license = { file = "LICENSE" }
+dependencies = [
+  "certifi >= 2023.7.2",
+  "cffi >= 1.15.1",
+  "charset-normalizer >= 2.1.1",
+  "cryptography >= 41.0.2",
+  "idna >= 3.4",
+  "iso8601 >= 1.1.0",
+  "pycparser >= 2.21",
+  "PyJWT >= 2.6.0",
+  "requests >= 2.31.0",
+  "urllib3 >= 1.26.12"
+]
 
 [project.urls]
 Homepage = "https://github.com/userclouds/sdk-python"
