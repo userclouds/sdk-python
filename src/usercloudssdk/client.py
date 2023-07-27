@@ -81,10 +81,7 @@ class Client:
             params["email"] = email
         params["version"] = "2"
         j = self._get("/authn/users", params=params)
-        if email is None:
-            users = [UserResponse.from_json(ur) for ur in j["data"]]
-        else:
-            users = [UserResponse.from_json(ur) for ur in j]
+        users = [UserResponse.from_json(ur) for ur in j["data"]]
         return users
 
     def GetUser(self, id: uuid.UUID) -> UserResponse:
@@ -123,13 +120,17 @@ class Client:
         j = self._get(f"/userstore/config/columns/{str(id)}")
         return Column.from_json(j)
 
-    def ListColumns(self) -> list[Column]:
-        j = self._get("/userstore/config/columns")
-
-        columns = []
-        for c in j:
-            columns.append(Column.from_json(c))
-
+    def ListColumns(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ) -> list[Column]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{str(starting_after)}"
+        params["version"] = "2"
+        j = self._get("/userstore/config/columns", params=params)
+        columns = [Column.from_json(c) for c in j["data"]]
         return columns
 
     def UpdateColumn(self, column: Column) -> Column:
@@ -341,11 +342,7 @@ class Client:
 
     def ListAccessors(self) -> list[Accessor]:
         j = self._get("/userstore/config/accessors")
-
-        accessors = []
-        for a in j:
-            accessors.append(Accessor.from_json(a))
-
+        accessors = [Accessor.from_json(a) for a in j["data"]]
         return accessors
 
     def UpdateAccessor(self, accessor: Accessor) -> Accessor:
@@ -392,11 +389,7 @@ class Client:
 
     def ListMutators(self) -> list[Mutator]:
         j = self._get("/userstore/config/mutators")
-
-        mutators = []
-        for a in j:
-            mutators.append(Mutator.from_json(a))
-
+        mutators = [Mutator.from_json(m) for m in j["data"]]
         return mutators
 
     def UpdateMutator(self, mutator: Mutator) -> Mutator:
