@@ -1,0 +1,22 @@
+import uuid
+
+COLUMN_INDEX_TYPE_NONE = "none"
+COLUMN_INDEX_TYPE_INDEXED = "indexed"
+COLUMN_INDEX_TYPE_UNIQUE = "unique"
+
+AUTHN_TYPE_PASSWORD = "password"
+
+POLICY_TYPE_COMPOSITE_INTERSECTION = "compositeintersection"
+POLICY_TYPE_COMPOSITE_UNION = "compositeunion"
+
+DATA_TYPE_ADDRESS = "address"
+DATA_TYPE_BOOLEAN = "boolean"
+DATA_TYPE_INTEGER = "integer"
+DATA_TYPE_STRING = "string"
+DATA_TYPE_TIMESTAMP = "timestamp"
+DATA_TYPE_UUID = "uuid"
+
+TRANSFORM_TYPE_PASSTHROUGH = "passthrough"
+TRANSFORM_TYPE_TOKENIZE_BY_REFERENCE = "tokenizebyreference"
+TRANSFORM_TYPE_TOKENIZE_BY_VALUE = "tokenizebyvalue"
+TRANSFORM_TYPE_TRANSFORM = "transform"
