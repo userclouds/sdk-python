@@ -6,7 +6,7 @@ import urllib.parse
 import jwt
 import requests
 
-from models import (
+from .models import (
     Accessor,
     AccessPolicy,
     AccessPolicyTemplate,
@@ -19,8 +19,8 @@ from models import (
     UserResponse,
     Transformer,
 )
-from constants import AUTHN_TYPE_PASSWORD
-import ucjson
+from .constants import AUTHN_TYPE_PASSWORD
+from . import ucjson
 
 
 class Error(BaseException):

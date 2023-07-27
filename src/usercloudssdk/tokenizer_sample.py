@@ -2,16 +2,16 @@ import functools
 import sys
 import uuid
 
-from client import Client, Error
-from models import (
+from usercloudssdk.client import Client, Error
+from usercloudssdk.models import (
     AccessPolicy,
     Transformer,
     AccessPolicyComponent,
     AccessPolicyTemplate,
     ResourceID,
 )
-from policies import AccessPolicyOpen, TransformerUUID
-from constants import (
+from usercloudssdk.policies import AccessPolicyOpen, TransformerUUID
+from usercloudssdk.constants import (
     POLICY_TYPE_COMPOSITE_INTERSECTION,
     DATA_TYPE_STRING,
     TRANSFORM_TYPE_TRANSFORM,

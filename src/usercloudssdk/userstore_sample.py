@@ -1,7 +1,7 @@
 import uuid
 
-from client import Client, Error
-from models import (
+from usercloudssdk.client import Client, Error
+from usercloudssdk.models import (
     AccessPolicy,
     AccessPolicyTemplate,
     AccessPolicyComponent,
@@ -15,7 +15,7 @@ from models import (
     UserSelectorConfig,
     Transformer,
 )
-from constants import (
+from usercloudssdk.constants import (
     DATA_TYPE_STRING,
     DATA_TYPE_ADDRESS,
     COLUMN_INDEX_TYPE_NONE,
@@ -23,7 +23,7 @@ from constants import (
     POLICY_TYPE_COMPOSITE_INTERSECTION,
     TRANSFORM_TYPE_TRANSFORM,
 )
-from policies import (
+from usercloudssdk.policies import (
     AccessPolicyOpen,
     ValidatorOpen,
     TransformerPassThrough,

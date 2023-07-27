@@ -1,6 +1,6 @@
 import uuid
 
-from models import ResourceID
+from .models import ResourceID
 
 # Note: these need to stay in sync with authz/constants.go
 AccessPolicyOpen = ResourceID(id=uuid.UUID("3f380e42-0b21-4570-a312-91e1b80386fa"))

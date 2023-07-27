@@ -2,7 +2,7 @@ import datetime
 import iso8601
 import uuid
 
-import ucjson
+from . import ucjson
 
 
 class User:
