@@ -1,6 +1,4 @@
-import uuid
-
-from usercloudssdk.client import Client, Error
+from usercloudssdk.client import Client
 from usercloudssdk.models import (
     AccessPolicy,
     AccessPolicyTemplate,

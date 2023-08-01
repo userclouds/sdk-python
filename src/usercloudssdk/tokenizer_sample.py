@@ -1,6 +1,5 @@
 import functools
 import sys
-import uuid
 
 from usercloudssdk.client import Client, Error
 from usercloudssdk.models import (
@@ -188,7 +187,8 @@ def test_token_apis(c: Client):
 def test_error_handling(c):
     try:
         d = c.ResolveTokens(["not a token"], {}, [])
-        print("expected error but got data: ", d)
+        if d[0]["data"] != "":
+            print("expected nothing but got data: ", d)
     except Error as e:
         if e.code != 404:
             print("got unexpected error code (wanted 404): ", e.code)

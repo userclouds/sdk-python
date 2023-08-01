@@ -228,10 +228,9 @@ class Client:
         return AccessPolicyTemplate.from_json(j)
 
     def DeleteAccessPolicyTemplate(self, id: uuid.UUID, version: int):
-        body = {"version": version}
-
         return self._delete(
-            f"/tokenizer/policies/accesstemplate/{str(id)}", data=ucjson.dumps(body)
+            f"/tokenizer/policies/accesstemplate/{str(id)}",
+            params={"template_version": str(version)},
         )
 
     # Access Policies
@@ -279,10 +278,9 @@ class Client:
         return AccessPolicy.from_json(j)
 
     def DeleteAccessPolicy(self, id: uuid.UUID, version: int):
-        body = {"version": version}
-
         return self._delete(
-            f"/tokenizer/policies/access/{str(id)}", data=ucjson.dumps(body)
+            f"/tokenizer/policies/access/{str(id)}",
+            params={"policy_version": str(version)},
         )
 
     ### Transformers
@@ -307,7 +305,7 @@ class Client:
         j = self._get("/tokenizer/policies/transformation")
 
         policies = []
-        for p in j:
+        for p in j["data"]:
             policies.append(Transformer.from_json(p))
 
         return policies
