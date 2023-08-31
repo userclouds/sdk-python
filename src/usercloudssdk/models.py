@@ -3,7 +3,7 @@ import iso8601
 import uuid
 
 from . import ucjson
-
+from dataclasses import dataclass
 
 class User:
     id: uuid.UUID
@@ -363,7 +363,7 @@ class AccessPolicyComponent:
         elif hasattr(self, "template"):
             return f"AccessPolicyComponent({self.template})"
         else:
-            return f"AccessPolicyComponent()"
+            return "AccessPolicyComponent()"
 
     def to_json(self):
         obj = {}
@@ -578,3 +578,17 @@ class APIErrorResponse:
     @staticmethod
     def from_json(j):
         return APIErrorResponse(j["error"], j["id"], j["identical"])
+
+
+@dataclass
+class Address:
+	country: str = None
+	name: str = None
+	organization: str = None
+	street_address_line_1: str = None
+	street_address_line_2: str = None
+	dependent_locality: str = None
+	locality: str = None
+	administrative_area: str = None
+	post_code: str = None
+	sorting_code: str = None
