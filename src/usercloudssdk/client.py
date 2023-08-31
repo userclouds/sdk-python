@@ -76,26 +76,27 @@ class Client:
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{str(starting_after)}"
+            params["starting_after"] = f"id:{starting_after}"
         if email is not None:
             params["email"] = email
-        params["version"] = "2"
+        params["version"] = "3"
         j = self._get("/authn/users", params=params)
+
         users = [UserResponse.from_json(ur) for ur in j["data"]]
         return users
 
     def GetUser(self, id: uuid.UUID) -> UserResponse:
-        j = self._get(f"/authn/users/{str(id)}")
+        j = self._get(f"/authn/users/{id}")
         return UserResponse.from_json(j)
 
     def UpdateUser(self, id: uuid.UUID, profile: dict) -> UserResponse:
         body = {"profile": profile}
 
-        j = self._put(f"/authn/users/{str(id)}", data=ucjson.dumps(body))
+        j = self._put(f"/authn/users/{id}", data=ucjson.dumps(body))
         return UserResponse.from_json(j)
 
     def DeleteUser(self, id: uuid.UUID) -> bool:
-        return self._delete(f"/authn/users/{str(id)}")
+        return self._delete(f"/authn/users/{id}")
 
     # Column Operations
 
@@ -114,10 +115,10 @@ class Client:
             raise e
 
     def DeleteColumn(self, id: uuid.UUID) -> str:
-        return self._delete(f"/userstore/config/columns/{str(id)}")
+        return self._delete(f"/userstore/config/columns/{id}")
 
     def GetColumn(self, id: uuid.UUID) -> Column:
-        j = self._get(f"/userstore/config/columns/{str(id)}")
+        j = self._get(f"/userstore/config/columns/{id}")
         return Column.from_json(j)
 
     def ListColumns(
@@ -127,9 +128,10 @@ class Client:
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{str(starting_after)}"
-        params["version"] = "2"
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
         j = self._get("/userstore/config/columns", params=params)
+
         columns = [Column.from_json(c) for c in j["data"]]
         return columns
 
@@ -156,19 +158,24 @@ class Client:
             raise e
 
     def DeletePurpose(self, id: uuid.UUID) -> str:
-        return self._delete(f"/userstore/config/purposes/{str(id)}")
+        return self._delete(f"/userstore/config/purposes/{id}")
 
     def GetPurpose(self, id: uuid.UUID) -> Purpose:
-        j = self._get(f"/userstore/config/purposes/{str(id)}")
+        j = self._get(f"/userstore/config/purposes/{id}")
         return Purpose.from_json(j)
 
-    def ListPurposes(self) -> list[Purpose]:
-        j = self._get("/userstore/config/purposes")
+    def ListPurposes(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ) -> list[Purpose]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/userstore/config/purposes", params=params)
 
-        purposes = []
-        for p in j:
-            purposes.append(Purpose.from_json(p))
-
+        purposes = [Purpose.from_json(p) for p in j["data"]]
         return purposes
 
     def UpdatePurpose(self, purpose: Purpose) -> Purpose:
@@ -201,18 +208,23 @@ class Client:
                     return access_policy_template
             raise e
 
-    def ListAccessPolicyTemplates(self):
-        j = self._get("/tokenizer/policies/accesstemplate")
+    def ListAccessPolicyTemplates(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ):
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/tokenizer/policies/accesstemplate", params=params)
 
-        policies = []
-        for p in j["data"]:
-            policies.append(AccessPolicyTemplate.from_json(p))
-
-        return policies
+        templates = [AccessPolicyTemplate.from_json(p) for p in j["data"]]
+        return templates
 
     def GetAccessPolicyTemplate(self, rid: ResourceID):
         if rid.id is not None:
-            j = self._get(f"/tokenizer/policies/accesstemplate/{str(rid.id)}")
+            j = self._get(f"/tokenizer/policies/accesstemplate/{rid.id}")
         elif rid.name is not None:
             j = self._get(f"/tokenizer/policies/accesstemplate?name={rid.name}")
 
@@ -229,7 +241,7 @@ class Client:
 
     def DeleteAccessPolicyTemplate(self, id: uuid.UUID, version: int):
         return self._delete(
-            f"/tokenizer/policies/accesstemplate/{str(id)}",
+            f"/tokenizer/policies/accesstemplate/{id}",
             params={"template_version": str(version)},
         )
 
@@ -251,18 +263,21 @@ class Client:
                     return access_policy
             raise e
 
-    def ListAccessPolicies(self):
-        j = self._get("/tokenizer/policies/access")
+    def ListAccessPolicies(self, limit: int = 0, starting_after: uuid.UUID = None):
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/tokenizer/policies/access", params=params)
 
-        policies = []
-        for p in j["data"]:
-            policies.append(AccessPolicy.from_json(p))
-
+        policies = [AccessPolicy.from_json(p) for p in j["data"]]
         return policies
 
     def GetAccessPolicy(self, rid: ResourceID):
         if rid.id is not None:
-            j = self._get(f"/tokenizer/policies/access/{str(rid.id)}")
+            j = self._get(f"/tokenizer/policies/access/{rid.id}")
         elif rid.name is not None:
             j = self._get(f"/tokenizer/policies/access?name={rid.name}")
 
@@ -279,7 +294,7 @@ class Client:
 
     def DeleteAccessPolicy(self, id: uuid.UUID, version: int):
         return self._delete(
-            f"/tokenizer/policies/access/{str(id)}",
+            f"/tokenizer/policies/access/{id}",
             params={"policy_version": str(version)},
         )
 
@@ -301,19 +316,22 @@ class Client:
                     return transformer
             raise e
 
-    def ListTransformers(self):
-        j = self._get("/tokenizer/policies/transformation")
+    def ListTransformers(self, limit: int = 0, starting_after: uuid.UUID = None):
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/tokenizer/policies/transformation", params=params)
 
-        policies = []
-        for p in j["data"]:
-            policies.append(Transformer.from_json(p))
-
-        return policies
+        transformers = [Transformer.from_json(p) for p in j["data"]]
+        return transformers
 
     # Note: Transformers are immutable, so no Update method is provided.
 
     def DeleteTransformer(self, id: uuid.UUID):
-        return self._delete(f"/tokenizer/policies/transformation/{str(id)}")
+        return self._delete(f"/tokenizer/policies/transformation/{id}")
 
     # Accessor Operations
 
@@ -332,14 +350,23 @@ class Client:
             raise e
 
     def DeleteAccessor(self, id: uuid.UUID) -> str:
-        return self._delete(f"/userstore/config/accessors/{str(id)}")
+        return self._delete(f"/userstore/config/accessors/{id}")
 
     def GetAccessor(self, id: uuid.UUID) -> Accessor:
-        j = self._get(f"/userstore/config/accessors/{str(id)}")
+        j = self._get(f"/userstore/config/accessors/{id}")
         return Accessor.from_json(j)
 
-    def ListAccessors(self) -> list[Accessor]:
-        j = self._get("/userstore/config/accessors")
+    def ListAccessors(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ) -> list[Accessor]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/userstore/config/accessors", params=params)
+
         accessors = [Accessor.from_json(a) for a in j["data"]]
         return accessors
 
@@ -354,7 +381,7 @@ class Client:
 
     def ExecuteAccessor(
         self, accessor_id: uuid.UUID, context: dict, selector_values: list
-    ) -> dict:
+    ) -> list:
         body = {
             "accessor_id": accessor_id,
             "context": context,
@@ -379,14 +406,23 @@ class Client:
             raise e
 
     def DeleteMutator(self, id: uuid.UUID) -> str:
-        return self._delete(f"/userstore/config/mutators/{str(id)}")
+        return self._delete(f"/userstore/config/mutators/{id}")
 
     def GetMutator(self, id: uuid.UUID) -> Mutator:
-        j = self._get(f"/userstore/config/mutators/{str(id)}")
+        j = self._get(f"/userstore/config/mutators/{id}")
         return Mutator.from_json(j)
 
-    def ListMutators(self) -> list[Mutator]:
-        j = self._get("/userstore/config/mutators")
+    def ListMutators(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ) -> list[Mutator]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/userstore/config/mutators", params=params)
+
         mutators = [Mutator.from_json(m) for m in j["data"]]
         return mutators
 
@@ -489,9 +525,10 @@ class Client:
         if self._access_token is None:
             return
 
-        # TODO: this takes advantage of an implementation detail that we use JWTs for access tokens,
-        # but we should probably either expose an endpoint to verify expiration time, or expect to
-        # retry requests with a well-formed error, or change our bearer token format in time.
+        # TODO: this takes advantage of an implementation detail that we use JWTs for
+        # access tokens, but we should probably either expose an endpoint to verify
+        # expiration time, or expect to retry requests with a well-formed error, or
+        # change our bearer token format in time.
         if (
             jwt.decode(self._access_token, options={"verify_signature": False}).get(
                 "exp"

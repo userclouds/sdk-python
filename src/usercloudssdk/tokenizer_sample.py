@@ -68,7 +68,8 @@ def test_access_policies(c: Client):
         update = c.UpdateAccessPolicy(created_ap)
         if update.version != created_ap.version + 1:
             print(
-                f"update changed version from {created_ap.version} to {update.version}, expected +1"
+                f"update changed version from {created_ap.version} to {update.version},\
+ expected +1"
             )
     except Error as e:
         print("failed to update access policy: ", e)
@@ -86,11 +87,12 @@ def test_access_policies(c: Client):
                 if ap.version != 0:
                     print(f"got access policy with version {ap.version}, expected 0")
         if len(aps) == 0:
-            print(f"found no policies, expected to find version 0")
+            print("found no policies, expected to find version 0")
     except Error as e:
         print("failed to get access policy: ", e)
 
-    # clean up the original AP and Template so you can re-run the sample repeatedly without an error
+    # clean up the original AP and Template so you can re-run the sample repeatedly
+    # without an error
     try:
         if not c.DeleteAccessPolicy(update.id, 0):
             print("failed to delete access policy but no error?")
@@ -109,7 +111,7 @@ def test_transformers(c: Client):
         name="test_transformer",
         input_type=DATA_TYPE_STRING,
         transform_type=TRANSFORM_TYPE_TRANSFORM,
-        function=f"function transform(x, y) {{ return 'token' }};",
+        function="function transform(x, y) { return 'token' };",
         parameters="{}",
     )
 
@@ -170,11 +172,13 @@ def test_token_apis(c: Client):
         print(f"expected inspect token {itr.token} to match created token {token}")
     if itr.transformer.id != TransformerUUID.id:
         print(
-            f"expected inspect transformer {itr.transformer.id} to match created transformer {TransformerUUID.id}"
+            f"expected inspect transformer {itr.transformer.id} to match created \
+transformer {TransformerUUID.id}"
         )
     if itr.access_policy.id != AccessPolicyOpen.id:
         print(
-            f"expected inspect access policy {itr.access_policy.id} to match created access policy {AccessPolicyOpen.id}"
+            f"expected inspect access policy {itr.access_policy.id} to match created \
+access policy {AccessPolicyOpen.id}"
         )
 
     try:

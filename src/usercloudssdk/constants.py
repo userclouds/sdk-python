@@ -1,5 +1,3 @@
-import uuid
-
 COLUMN_INDEX_TYPE_NONE = "none"
 COLUMN_INDEX_TYPE_INDEXED = "indexed"
 COLUMN_INDEX_TYPE_UNIQUE = "unique"

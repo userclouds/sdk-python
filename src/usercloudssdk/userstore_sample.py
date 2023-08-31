@@ -32,9 +32,10 @@ client_secret = "<REPLACE ME>"
 url = "<REPLACE ME>"
 
 
-# This sample shows you how to create new columns in the user store and create access policies governing access
-# to the data inside those columns. It also shows you how to create, delete and execute accessors and mutators.
-# To learn more about these concepts, see documentation.userclouds.com.
+# This sample shows you how to create new columns in the user store and create access
+# policies governing access to the data inside those columns. It also shows you how to
+# create, delete and execute accessors and mutators. To learn more about these
+# concepts, see docs.userclouds.com.
 
 
 def setup(c: Client):
@@ -91,7 +92,8 @@ def setup(c: Client):
         if_not_exists=True,
     )
 
-    # Create an access policy that allows access to the data in the columns for security and support purposes
+    # Create an access policy that allows access to the data in the columns for security
+    # and support purposes
     apt = AccessPolicyTemplate(
         name="PIIAccessPolicyTemplate",
         function="""function policy(context, params) {
@@ -112,7 +114,8 @@ def setup(c: Client):
     )
     ap = c.CreateAccessPolicy(ap, if_not_exists=True)
 
-    # Create a transformer that transforms the data in the columns for security and support teams
+    # Create a transformer that transforms the data in the columns for security and
+    # support teams
     phone_transformer_function = """
 function transform(data, params) {
     if (params.team == "security_team") {
@@ -152,14 +155,16 @@ function transform(data, params) {
         security_phone_transformer, if_not_exists=True
     )
 
-    # Accessors are configurable APIs that allow a client to retrieve data from the user store. Accessors are
-    # intended to be use-case specific. They enforce data usage policies and minimize outbound data from the
-    # store for their given use case.
+    # Accessors are configurable APIs that allow a client to retrieve data from the user
+    # store. Accessors are intended to be use-case specific. They enforce data usage
+    # policies and minimize outbound data from the store for their given use case.
 
-    # Selectors are used to filter the set of users that are returned by an accessor. They are eseentially SQL
-    # WHERE clauses and are configured per-accessor / per-mutator referencing column IDs of the userstore.
+    # Selectors are used to filter the set of users that are returned by an accessor.
+    # They are eseentially SQL WHERE clauses and are configured per-accessor /
+    # per-mutator referencing column IDs of the userstore.
 
-    # Here we create accessors for two example teams: (1) security team and (2) support team
+    # Here we create accessors for two example teams: (1) security team and (2) support
+    # team
     acc_support = Accessor(
         None,
         "PIIAccessor-SupportTeam",
@@ -212,7 +217,8 @@ function transform(data, params) {
         ],
         ResourceID(id=ap.id),
         UserSelectorConfig(
-            "{home_addresses}->>'street_address_line_1' LIKE (?) AND {phone_number} = (?)"
+            "{home_addresses}->>'street_address_line_1' LIKE (?) AND "
+            + "{phone_number} = (?)"
         ),
         [ResourceID(name="security")],
     )
@@ -246,9 +252,10 @@ function transform(data, params) {
     )
     acc_marketing = c.CreateAccessor(acc_marketing, if_not_exists=True)
 
-    # Mutators are configurable APIs that allow a client to write data to the User Store. Mutators (setters)
-    # can be thought of as the complement to accessors (getters). Here we create mutator to update the user's
-    # phone number and home address
+    # Mutators are configurable APIs that allow a client to write data to the User
+    # Store. Mutators (setters) can be thought of as the complement to accessors
+    # (getters). Here we create mutator to update the user's phone number and home
+    # address.
     mutator = Mutator(
         None,
         "PhoneAndAddressMutator",
@@ -303,8 +310,9 @@ def example(
                 ],
             },
             "home_addresses": {
-                "value": """[{"country":"usa", "street_address_line_1":"742 Evergreen Terrace", "locality":"Springfield"},
-                             {"country":"usa", "street_address_line_1":"123 Main St", "locality":"Pleasantville"}]""",
+                "value": '[{"country":"usa", "street_address_line_1":"742 Evergreen \
+Terrace", "locality":"Springfield"}, {"country":"usa", "street_address_line_1":"123 \
+Main St", "locality":"Pleasantville"}]',
                 "purpose_additions": [
                     {"Name": "security"},
                     {"Name": "support"},
