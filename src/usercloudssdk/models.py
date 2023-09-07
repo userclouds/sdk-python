@@ -5,6 +5,7 @@ import uuid
 from . import ucjson
 from dataclasses import dataclass
 
+
 class User:
     id: uuid.UUID
     profile: dict
@@ -582,13 +583,13 @@ class APIErrorResponse:
 
 @dataclass
 class Address:
-	country: str = None
-	name: str = None
-	organization: str = None
-	street_address_line_1: str = None
-	street_address_line_2: str = None
-	dependent_locality: str = None
-	locality: str = None
-	administrative_area: str = None
-	post_code: str = None
-	sorting_code: str = None
+    country: str = None
+    name: str = None
+    organization: str = None
+    street_address_line_1: str = None
+    street_address_line_2: str = None
+    dependent_locality: str = None
+    locality: str = None
+    administrative_area: str = None
+    post_code: str = None
+    sorting_code: str = None

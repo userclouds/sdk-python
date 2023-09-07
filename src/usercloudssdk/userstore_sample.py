@@ -39,7 +39,6 @@ url = "<REPLACE ME>"
 
 
 def setup(c: Client):
-
     # create phone number and home address columns
     c.CreateColumn(
         Column(
@@ -116,7 +115,7 @@ def setup(c: Client):
 
     # Create a transformer that transforms the data in the columns for security and
     # support teams
-    phone_transformer_function = """
+    phone_transformer_function = r"""
 function transform(data, params) {
     if (params.team == "security_team") {
         return data;
