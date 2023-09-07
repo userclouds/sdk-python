@@ -3,7 +3,7 @@ import iso8601
 import uuid
 
 from . import ucjson
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 class User:
     id: uuid.UUID
@@ -78,30 +78,19 @@ class UserSelectorConfig:
     def from_json(j):
         return UserSelectorConfig(j["where_clause"])
 
-
+@dataclass
 class ResourceID:
-    def __init__(self, id="", name=""):
-        if id != "":
-            setattr(self, "id", id)
-        if name != "":
-            setattr(self, "name", name)
-
-    def __repr__(self):
-        if hasattr(self, "id"):
-            return f"ResourceID({self.id})"
-        elif hasattr(self, "name"):
-            return f"ResourceID({self.name})"
-        else:
-            return "ResourceID()"
-
+    id: str = ""
+    name: str = ""
+    
     def isValid(self):
-        return hasattr(self, "id") or hasattr(self, "name")
+        return self.id != "" or self.name != ""
 
-    @staticmethod
-    def from_json(j):
-        return ResourceID(j["id"], j["name"])
+    @classmethod
+    def from_json(cls, j):
+        return cls(**j)
 
-
+@dataclass
 class Column:
     id: uuid.UUID
     name: str
@@ -110,56 +99,29 @@ class Column:
     default_value: str
     index_type: str
 
-    def __init__(self, id, name, type, is_array, default_value, index_type):
-        self.id = id
-        self.name = name
-        self.type = type
-        self.is_array = is_array
-        self.default_value = default_value
-        self.index_type = index_type
+    
 
     def to_json(self):
-        return ucjson.dumps(
-            {
-                "id": str(self.id),
-                "name": self.name,
-                "type": self.type,
-                "is_array": self.is_array,
-                "default_value": self.default_value,
-                "index_type": self.index_type,
-            }
-        )
+        return ucjson.dumps(asdict(self))
 
-    @staticmethod
-    def from_json(j):
-        return Column(
-            uuid.UUID(j["id"]),
-            j["name"],
-            j["type"],
-            j["is_array"],
-            j["default_value"],
-            j["index_type"],
-        )
+    @classmethod
+    def from_json(cls, j):
+        j['id'] = uuid.UUID(j["id"])
+        return cls(**j)
 
-
+@dataclass
 class Purpose:
     id: uuid.UUID
     name: str
     description: str
 
-    def __init__(self, id, name, description):
-        self.id = id
-        self.name = name
-        self.description = description
-
     def to_json(self):
-        return ucjson.dumps(
-            {"id": str(self.id), "name": self.name, "description": self.description}
-        )
-
-    @staticmethod
-    def from_json(j):
-        return Purpose(uuid.UUID(j["id"]), j["name"], j["description"])
+        return ucjson.dumps(asdict(self))
+    
+    @classmethod
+    def from_json(cls, j):
+        j['id'] = uuid.UUID(j["id"])
+        return cls(**j)
 
 
 class ColumnOutputConfig:
