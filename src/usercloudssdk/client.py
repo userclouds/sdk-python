@@ -469,6 +469,23 @@ class Client:
         j = self._post("/tokenizer/tokens", data=ucjson.dumps(body))
         return j["data"]
 
+    def LookupOrCreateTokens(
+        self,
+        data: list[str],
+        transformers: list[ResourceID],
+        access_policies: list[ResourceID],
+    ) -> list[str]:
+        body = {
+            "data": data,
+            "transformer_rids": [t.__dict__ for t in transformers],
+            "access_policy_rids": [a.__dict__ for a in access_policies],
+        }
+
+        j = self._post(
+            "/tokenizer/tokens/actions/lookuporcreate", data=ucjson.dumps(body)
+        )
+        return j["tokens"]
+
     def ResolveTokens(
         self, tokens: list[str], context: dict, purposes: list[ResourceID]
     ) -> list[str]:
