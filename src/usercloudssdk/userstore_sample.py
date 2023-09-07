@@ -39,7 +39,6 @@ url = "<REPLACE ME>"
 
 
 def setup(c: Client):
-
     # create phone number and home address columns
     c.CreateColumn(
         Column(
