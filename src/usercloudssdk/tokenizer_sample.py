@@ -1,5 +1,4 @@
 import functools
-import sys
 
 from usercloudssdk.client import Client, Error
 from usercloudssdk.models import (
@@ -31,7 +30,7 @@ def test_access_policies(c: Client):
         created_apt = c.CreateAccessPolicyTemplate(new_apt, if_not_exists=True)
     except Error as e:
         print("failed to create new access policy template: ", e)
-        sys.exit(1)
+        raise
 
     new_ap = AccessPolicy(
         name="test_access_policy",
@@ -47,13 +46,14 @@ def test_access_policies(c: Client):
         created_ap = c.CreateAccessPolicy(new_ap, if_not_exists=True)
     except Error as e:
         print("failed to create new access policy: ", e)
-        sys.exit(1)
+        raise
 
     aps = []
     try:
         aps = c.ListAccessPolicies()
     except Error as e:
         print("failed to list access policies: ", e)
+        raise
 
     if not functools.reduce(
         lambda found, ap: found or (ap.id == AccessPolicyOpen.id), aps
@@ -73,12 +73,14 @@ def test_access_policies(c: Client):
             )
     except Error as e:
         print("failed to update access policy: ", e)
+        raise
 
     try:
         if not c.DeleteAccessPolicy(update.id, update.version):
             print("failed to delete access policy but no error?")
     except Error as e:
         print("failed to delete access policy: ", e)
+        raise
 
     try:
         aps = c.ListAccessPolicies()
@@ -90,6 +92,7 @@ def test_access_policies(c: Client):
             print("found no policies, expected to find version 0")
     except Error as e:
         print("failed to get access policy: ", e)
+        raise
 
     # clean up the original AP and Template so you can re-run the sample repeatedly
     # without an error
@@ -98,12 +101,14 @@ def test_access_policies(c: Client):
             print("failed to delete access policy but no error?")
     except Error as e:
         print("failed to delete access policy: ", e)
+        raise
 
     try:
         if not c.DeleteAccessPolicyTemplate(created_apt.id, 0):
             print("failed to delete access policy template but no error?")
     except Error as e:
         print("failed to delete access policy template: ", e)
+        raise
 
 
 def test_transformers(c: Client):
@@ -119,12 +124,14 @@ def test_transformers(c: Client):
         created_gp = c.CreateTransformer(new_gp, if_not_exists=True)
     except Error as e:
         print("failed to create new transformer: ", e)
+        raise
 
     gps = []
     try:
         gps = c.ListTransformers()
     except Error as e:
         print("failed to list transformers: ", e)
+        raise
 
     if not functools.reduce(
         lambda found, gp: found or (gp.id == TransformerUUID.id), gps
@@ -138,6 +145,7 @@ def test_transformers(c: Client):
             print("failed to delete transformer but no error?")
     except Error as e:
         print("failed to delete transformer: ", e)
+        raise
 
 
 def test_token_apis(c: Client):
@@ -156,6 +164,7 @@ def test_token_apis(c: Client):
         lookup_tokens = c.LookupToken(originalData, TransformerUUID, AccessPolicyOpen)
     except Error as e:
         print("failed to lookup token: ", e)
+        raise
 
     if token not in lookup_tokens:
         print(
@@ -167,6 +176,7 @@ def test_token_apis(c: Client):
         itr = c.InspectToken(token)
     except Error as e:
         print("failed to inspect token: ", e)
+        raise
 
     if itr.token != token:
         print(f"expected inspect token {itr.token} to match created token {token}")
@@ -186,6 +196,7 @@ access policy {AccessPolicyOpen.id}"
             print("failed to delete token but no error?")
     except Error as e:
         print("failed to delete token: ", e)
+        raise
 
 
 def test_error_handling(c):
@@ -196,6 +207,7 @@ def test_error_handling(c):
     except Error as e:
         if e.code != 404:
             print("got unexpected error code (wanted 404): ", e.code)
+            raise
 
 
 if __name__ == "__main__":

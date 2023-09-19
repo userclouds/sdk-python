@@ -5,6 +5,7 @@ import urllib.parse
 
 import jwt
 import requests
+from dataclasses import asdict
 
 from .models import (
     Accessor,
@@ -18,6 +19,11 @@ from .models import (
     ResourceID,
     UserResponse,
     Transformer,
+    Object,
+    ObjectType,
+    Edge,
+    EdgeType,
+    Organization,
 )
 from .constants import AUTHN_TYPE_PASSWORD
 from . import ucjson
@@ -32,22 +38,24 @@ class Error(BaseException):
     def __repr__(self):
         return f"Error({self.error}, {self.code}, {self.request_id})"
 
-    @staticmethod
-    def from_json(j):
-        return Error(j["error"], j["request_id"])
+    @classmethod
+    def from_json(cls, j):
+        return cls(j["error"], j["request_id"])
 
 
 class Client:
     url: str
     client_id: str
     _client_secret: str
+    _request_kwargs: dict
 
     _access_token: str
 
-    def __init__(self, url, id, secret):
+    def __init__(self, url, id, secret, **kwargs):
         self.url = url
         self.client_id = urllib.parse.quote(id)
         self._client_secret = urllib.parse.quote(secret)
+        self._request_kwargs = kwargs
 
         self._access_token = self._get_access_token()
 
@@ -107,11 +115,9 @@ class Client:
             j = self._post("/userstore/config/columns", data=ucjson.dumps(body))
             return Column.from_json(j)
         except Error as e:
-            if if_not_exists and e.code == 409:
-                er = APIErrorResponse.from_json(e.error)
-                if er.identical:
-                    column.id = er.id
-                    return column
+            if if_not_exists:
+                column.id = _id_from_identical_conflict(e)
+                return column
             raise e
 
     def DeleteColumn(self, id: uuid.UUID) -> str:
@@ -150,11 +156,9 @@ class Client:
             j = self._post("/userstore/config/purposes", data=ucjson.dumps(body))
             return Purpose.from_json(j)
         except Error as e:
-            if if_not_exists and e.code == 409:
-                er = APIErrorResponse.from_json(e.error)
-                if er.identical:
-                    purpose.id = er.id
-                    return purpose
+            if if_not_exists:
+                purpose.id = _id_from_identical_conflict(e)
+                return purpose
             raise e
 
     def DeletePurpose(self, id: uuid.UUID) -> str:
@@ -201,11 +205,9 @@ class Client:
             )
             return AccessPolicyTemplate.from_json(j)
         except Error as e:
-            if if_not_exists and e.code == 409:
-                er = APIErrorResponse.from_json(e.error)
-                if er.identical:
-                    access_policy_template.id = er.id
-                    return access_policy_template
+            if if_not_exists:
+                access_policy_template.id = _id_from_identical_conflict(e)
+                return access_policy_template
             raise e
 
     def ListAccessPolicyTemplates(
@@ -256,11 +258,9 @@ class Client:
             j = self._post("/tokenizer/policies/access", data=ucjson.dumps(body))
             return AccessPolicy.from_json(j)
         except Error as e:
-            if if_not_exists and e.code == 409:
-                er = APIErrorResponse.from_json(e.error)
-                if er.identical:
-                    access_policy.id = er.id
-                    return access_policy
+            if if_not_exists:
+                access_policy.id = _id_from_identical_conflict(e)
+                return access_policy
             raise e
 
     def ListAccessPolicies(self, limit: int = 0, starting_after: uuid.UUID = None):
@@ -309,11 +309,9 @@ class Client:
             )
             return Transformer.from_json(j)
         except Error as e:
-            if if_not_exists and e.code == 409:
-                er = APIErrorResponse.from_json(e.error)
-                if er.identical:
-                    transformer.id = er.id
-                    return transformer
+            if if_not_exists:
+                transformer.id = _id_from_identical_conflict(e)
+                return transformer
             raise e
 
     def ListTransformers(self, limit: int = 0, starting_after: uuid.UUID = None):
@@ -342,11 +340,9 @@ class Client:
             j = self._post("/userstore/config/accessors", data=ucjson.dumps(body))
             return Accessor.from_json(j)
         except Error as e:
-            if if_not_exists and e.code == 409:
-                er = APIErrorResponse.from_json(e.error)
-                if er.identical:
-                    accessor.id = er.id
-                    return accessor
+            if if_not_exists:
+                accessor.id = _id_from_identical_conflict(e)
+                return accessor
             raise e
 
     def DeleteAccessor(self, id: uuid.UUID) -> str:
@@ -398,11 +394,9 @@ class Client:
             j = self._post("/userstore/config/mutators", data=ucjson.dumps(body))
             return Mutator.from_json(j)
         except Error as e:
-            if if_not_exists and e.code == 409:
-                er = APIErrorResponse.from_json(e.error)
-                if er.identical:
-                    mutator.id = er.id
-                    return mutator
+            if if_not_exists:
+                mutator.id = _id_from_identical_conflict(e)
+                return mutator
             raise e
 
     def DeleteMutator(self, id: uuid.UUID) -> str:
@@ -477,8 +471,8 @@ class Client:
     ) -> list[str]:
         body = {
             "data": data,
-            "transformer_rids": [t.__dict__ for t in transformers],
-            "access_policy_rids": [a.__dict__ for a in access_policies],
+            "transformer_rids": [asdict(t) for t in transformers],
+            "access_policy_rids": [asdict(a) for a in access_policies],
         }
 
         j = self._post(
@@ -518,6 +512,177 @@ class Client:
         j = self._post("/tokenizer/tokens/actions/lookup", data=ucjson.dumps(body))
         return j["tokens"]
 
+    # AuthZ Operations
+
+    def ListObjects(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ) -> list[Object]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/authz/objects", params=params)
+
+        objects = [Object.from_json(o) for o in j["data"]]
+        return objects
+
+    def CreateObject(self, object: Object, if_not_exists=False) -> Object:
+        body = object.__dict__
+
+        try:
+            j = self._post("/authz/objects", data=ucjson.dumps(body))
+            return Object.from_json(j)
+        except Error as e:
+            if if_not_exists:
+                object.id = _id_from_identical_conflict(e)
+                return object
+            raise e
+
+    def GetObject(self, id: uuid.UUID) -> Object:
+        j = self._get(f"/authz/objects/{id}")
+        return Object.from_json(j)
+
+    def DeleteObject(self, id: uuid.UUID):
+        return self._delete(f"/authz/objects/{id}")
+
+    def ListEdges(self, limit: int = 0, starting_after: uuid.UUID = None) -> list[Edge]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/authz/edges", params=params)
+
+        edges = [Edge.from_json(e) for e in j["data"]]
+        return edges
+
+    def CreateEdge(self, edge: Edge, if_not_exists=False) -> Edge:
+        body = edge.__dict__
+
+        try:
+            j = self._post("/authz/edges", data=ucjson.dumps(body))
+            return Edge.from_json(j)
+        except Error as e:
+            if if_not_exists:
+                edge.id = _id_from_identical_conflict(e)
+                return edge
+            raise e
+
+    def GetEdge(self, id: uuid.UUID) -> Edge:
+        j = self._get(f"/authz/edges/{id}")
+        return Edge.from_json(j)
+
+    def DeleteEdge(self, id: uuid.UUID):
+        return self._delete(f"/authz/edges/{id}")
+
+    def ListObjectTypes(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ) -> list[ObjectType]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/authz/objecttypes", params=params)
+
+        object_types = [ObjectType.from_json(ot) for ot in j["data"]]
+        return object_types
+
+    def CreateObjectType(
+        self, object_type: ObjectType, if_not_exists=False
+    ) -> ObjectType:
+        body = object_type.__dict__
+
+        try:
+            j = self._post("/authz/objecttypes", data=ucjson.dumps(body))
+            return ObjectType.from_json(j)
+        except Error as e:
+            if if_not_exists:
+                object_type.id = _id_from_identical_conflict(e)
+                return object_type
+            raise e
+
+    def GetObjectType(self, id: uuid.UUID) -> ObjectType:
+        j = self._get(f"/authz/objecttypes/{id}")
+        return ObjectType.from_json(j)
+
+    def DeleteObjectType(self, id: uuid.UUID):
+        return self._delete(f"/authz/objecttypes/{id}")
+
+    def ListEdgeTypes(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ) -> list[EdgeType]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/authz/edgetypes", params=params)
+
+        edge_types = [EdgeType.from_json(et) for et in j["data"]]
+        return edge_types
+
+    def CreateEdgeType(self, edge_type: EdgeType, if_not_exists=False) -> EdgeType:
+        body = edge_type.__dict__
+
+        try:
+            j = self._post("/authz/edgetypes", data=ucjson.dumps(body))
+            return EdgeType.from_json(j)
+        except Error as e:
+            if if_not_exists:
+                edge_type.id = _id_from_identical_conflict(e)
+                return edge_type
+            raise e
+
+    def GetEdgeType(self, id: uuid.UUID) -> EdgeType:
+        j = self._get(f"/authz/edgetypes/{id}")
+        return EdgeType.from_json(j)
+
+    def DeleteEdgeType(self, id: uuid.UUID):
+        return self._delete(f"/authz/edgetypes/{id}")
+
+    def ListOrganizations(
+        self, limit: int = 0, starting_after: uuid.UUID = None
+    ) -> list[Organization]:
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        j = self._get("/authz/organizations", params=params)
+
+        organizations = [Organization.from_json(o) for o in j["data"]]
+        return organizations
+
+    def CreateOrganization(self, organization: Organization) -> Organization:
+        body = organization.__dict__
+        j = self._post("/authz/organizations", data=ucjson.dumps(body))
+        return Organization.from_json(j)
+
+    def GetOrganization(self, id: uuid.UUID) -> Organization:
+        j = self._get(f"/authz/organizations/{id}")
+        return Organization.from_json(j)
+
+    def DeleteOrganization(self, id: uuid.UUID):
+        return self._delete(f"/authz/organizations/{id}")
+
+    def CheckAttribute(
+        self,
+        source_object_id: uuid.UUID,
+        target_object_id: uuid.UUID,
+        attribute_name: str,
+    ) -> bool:
+        j = self._get(
+            f"/authz/checkattribute?source_object_id={source_object_id}&target_object_id={target_object_id}&attribute={attribute_name}"
+        )
+        return j.get("has_attribute")
+
     # Access token helpers
 
     def _get_access_token(self) -> str:
@@ -534,7 +699,12 @@ class Client:
 
         # Note that we use requests directly here (instead of _post) because we don't
         # want to refresh the access token as we are trying to get it. :)
-        r = requests.post(self.url + "/oidc/token", headers=headers, data=body)
+        r = requests.post(
+            self.url + "/oidc/token",
+            headers=headers,
+            data=body,
+            **self._request_kwargs,
+        )
         j = ucjson.loads(r.text)
         return j.get("access_token")
 
@@ -561,7 +731,9 @@ class Client:
 
     def _get(self, url, **kwargs) -> dict:
         self._refresh_access_token_if_needed()
-        r = requests.get(self.url + url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        r = requests.get(self.url + url, headers=self._get_headers(), **args)
         j = ucjson.loads(r.text)
 
         if r.status_code >= 400:
@@ -573,7 +745,9 @@ class Client:
 
     def _post(self, url, **kwargs) -> dict:
         self._refresh_access_token_if_needed()
-        r = requests.post(self.url + url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        r = requests.post(self.url + url, headers=self._get_headers(), **args)
         j = ucjson.loads(r.text)
 
         if r.status_code >= 400:
@@ -585,7 +759,9 @@ class Client:
 
     def _put(self, url, **kwargs) -> dict:
         self._refresh_access_token_if_needed()
-        r = requests.put(self.url + url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        r = requests.put(self.url + url, headers=self._get_headers(), **args)
         j = ucjson.loads(r.text)
 
         if r.status_code >= 400:
@@ -597,7 +773,9 @@ class Client:
 
     def _delete(self, url, **kwargs) -> bool:
         self._refresh_access_token_if_needed()
-        r = requests.delete(self.url + url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        r = requests.delete(self.url + url, headers=self._get_headers(), **args)
 
         if r.status_code >= 400:
             j = ucjson.loads(r.text)
@@ -606,3 +784,11 @@ class Client:
             raise e
 
         return r.status_code == 204
+
+
+def _id_from_identical_conflict(e):
+    if e.code == 409:
+        er = APIErrorResponse.from_json(e.error)
+        if er.identical:
+            return er.id
+    raise e
