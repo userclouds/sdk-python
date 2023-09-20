@@ -38,9 +38,9 @@ class Error(BaseException):
     def __repr__(self):
         return f"Error({self.error}, {self.code}, {self.request_id})"
 
-    @classmethod
-    def from_json(cls, j):
-        return cls(j["error"], j["request_id"])
+    @staticmethod
+    def from_json(j):
+        return Error(j["error"], j["request_id"])
 
 
 class Client:
