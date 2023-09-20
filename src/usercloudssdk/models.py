@@ -3,7 +3,7 @@ import iso8601
 import uuid
 
 from . import ucjson
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 
 class User:
@@ -22,18 +22,27 @@ class User:
             }
         )
 
-    @classmethod
-    def from_json(cls, j):
-        return _from_json_with_id(cls, j)
+    @staticmethod
+    def from_json(j):
+        return User(
+            uuid.UUID(j["id"]),
+            j["profile"],
+        )
 
 
-@dataclass
 class UserResponse:
     id: uuid.UUID
     updated_at: datetime.datetime
     profile: dict
     require_mfa: bool
     authns: list[str]
+
+    def __init__(self, id, updated_at, profile, require_mfa, authns):
+        self.id = id
+        self.updated_at = updated_at
+        self.profile = profile
+        self.require_mfa = require_mfa
+        self.authns = authns
 
     def to_json(self):
         return ucjson.dumps(
@@ -46,38 +55,54 @@ class UserResponse:
             }
         )
 
-    @classmethod
-    def from_json(cls, j):
-        j["updated_at"] = datetime.datetime.fromtimestamp(j["updated_at"])
-        return _from_json_with_id(cls, j)
+    @staticmethod
+    def from_json(j):
+        return UserResponse(
+            uuid.UUID(j["id"]),
+            datetime.datetime.fromtimestamp(j["updated_at"]),
+            j["profile"],
+            j["require_mfa"],
+            j["authns"],
+        )
 
 
-@dataclass
 class UserSelectorConfig:
     where_clause: str
+
+    def __init__(self, where_clause):
+        self.where_clause = where_clause
 
     def to_json(self):
         return ucjson.dumps({"where_clause": self.where_clause})
 
-    @classmethod
-    def from_json(cls, j):
-        return cls(**j)
+    @staticmethod
+    def from_json(j):
+        return UserSelectorConfig(j["where_clause"])
 
 
-@dataclass
 class ResourceID:
-    id: str = ""
-    name: str = ""
+    def __init__(self, id="", name=""):
+        if id != "":
+            setattr(self, "id", id)
+        if name != "":
+            setattr(self, "name", name)
+
+    def __repr__(self):
+        if hasattr(self, "id"):
+            return f"ResourceID({self.id})"
+        elif hasattr(self, "name"):
+            return f"ResourceID({self.name})"
+        else:
+            return "ResourceID()"
 
     def isValid(self):
-        return self.id != "" or self.name != ""
+        return hasattr(self, "id") or hasattr(self, "name")
 
-    @classmethod
-    def from_json(cls, j):
-        return cls(**j)
+    @staticmethod
+    def from_json(j):
+        return ResourceID(j["id"], j["name"])
 
 
-@dataclass
 class Column:
     id: uuid.UUID
     name: str
@@ -86,26 +111,56 @@ class Column:
     default_value: str
     index_type: str
 
+    def __init__(self, id, name, type, is_array, default_value, index_type):
+        self.id = id
+        self.name = name
+        self.type = type
+        self.is_array = is_array
+        self.default_value = default_value
+        self.index_type = index_type
+
     def to_json(self):
-        return ucjson.dumps(asdict(self))
+        return ucjson.dumps(
+            {
+                "id": str(self.id),
+                "name": self.name,
+                "type": self.type,
+                "is_array": self.is_array,
+                "default_value": self.default_value,
+                "index_type": self.index_type,
+            }
+        )
 
-    @classmethod
-    def from_json(cls, j):
-        return _from_json_with_id(cls, j)
+    @staticmethod
+    def from_json(j):
+        return Column(
+            uuid.UUID(j["id"]),
+            j["name"],
+            j["type"],
+            j["is_array"],
+            j["default_value"],
+            j["index_type"],
+        )
 
 
-@dataclass
 class Purpose:
     id: uuid.UUID
     name: str
     description: str
 
-    def to_json(self):
-        return ucjson.dumps(asdict(self))
+    def __init__(self, id, name, description):
+        self.id = id
+        self.name = name
+        self.description = description
 
-    @classmethod
-    def from_json(cls, j):
-        return _from_json_with_id(cls, j)
+    def to_json(self):
+        return ucjson.dumps(
+            {"id": str(self.id), "name": self.name, "description": self.description}
+        )
+
+    @staticmethod
+    def from_json(j):
+        return Purpose(uuid.UUID(j["id"]), j["name"], j["description"])
 
 
 class ColumnOutputConfig:
@@ -167,26 +222,35 @@ class Accessor:
             }
         )
 
-    @classmethod
-    def from_json(cls, j):
-        j["access_policy"] = (ResourceID.from_json(j["access_policy"]),)
-        j["selector_config"] = (UserSelectorConfig.from_json(j["selector_config"]),)
-        return _from_json_with_id(cls, j)
+    @staticmethod
+    def from_json(j):
+        return Accessor(
+            uuid.UUID(j["id"]),
+            j["name"],
+            j["description"],
+            j["columns"],
+            ResourceID.from_json(j["access_policy"]),
+            UserSelectorConfig.from_json(j["selector_config"]),
+            j["purposes"],
+            j["version"],
+        )
 
 
-@dataclass
 class ColumnInputConfig:
     column: ResourceID
     validator: ResourceID
 
-    @classmethod
-    def from_json(cls, j):
-        return cls(
+    def __init__(self, column, validator):
+        self.column = column
+        self.validator = validator
+
+    @staticmethod
+    def from_json(j):
+        return ColumnInputConfig(
             ResourceID.from_json(j["column"]), ResourceID.from_json(j["validator"])
         )
 
 
-@dataclass
 class Mutator:
     id: uuid.UUID
     name: str
@@ -194,7 +258,25 @@ class Mutator:
     columns: list[ColumnInputConfig]
     access_policy: ResourceID
     selector_config: UserSelectorConfig
-    version: int = 0
+    version: int
+
+    def __init__(
+        self,
+        id,
+        name,
+        description,
+        columns,
+        access_policy,
+        selector_config,
+        version=0,
+    ):
+        self.id = id
+        self.name = name
+        self.description = description
+        self.columns = columns
+        self.access_policy = access_policy
+        self.selector_config = selector_config
+        self.version = version
 
     def to_json(self):
         return ucjson.dumps(
@@ -209,11 +291,17 @@ class Mutator:
             }
         )
 
-    @classmethod
-    def from_json(cls, j):
-        j["access_policy"] = (ResourceID.from_json(j["access_policy"]),)
-        j["selector_config"] = (UserSelectorConfig.from_json(j["selector_config"]),)
-        return _from_json_with_id(cls, j)
+    @staticmethod
+    def from_json(j):
+        return Mutator(
+            uuid.UUID(j["id"]),
+            j["name"],
+            j["description"],
+            j["columns"],
+            ResourceID.from_json(j["access_policy"]),
+            UserSelectorConfig.from_json(j["selector_config"]),
+            j["version"],
+        )
 
 
 class AccessPolicyTemplate:
@@ -347,7 +435,6 @@ class AccessPolicy:
         )
 
 
-@dataclass
 class Transformer:
     id: uuid.UUID
     name: str
@@ -355,6 +442,22 @@ class Transformer:
     transform_type: str
     function: str
     parameters: str
+
+    def __init__(
+        self,
+        id=uuid.UUID(int=0),
+        name="",
+        input_type="",
+        transform_type="",
+        function="",
+        parameters="",
+    ):
+        self.id = id
+        self.name = name
+        self.input_type = input_type
+        self.transform_type = transform_type
+        self.function = function
+        self.parameters = parameters
 
     def __repr__(self):
         return f"Transformer({self.id})"
@@ -371,17 +474,29 @@ class Transformer:
             },
         )
 
-    @classmethod
-    def from_json(cls, j):
-        return _from_json_with_id(cls, j)
+    @staticmethod
+    def from_json(j):
+        return Transformer(
+            uuid.UUID(j["id"]),
+            j["name"],
+            j["input_type"],
+            j["transform_type"],
+            j["function"],
+            j["parameters"],
+        )
 
 
-@dataclass
 class Validator:
     id: uuid.UUID
     name: str
     function: str
     parameters: str
+
+    def __init__(self, id, name="", function="", parameters=""):
+        self.id = id
+        self.name = name
+        self.function = function
+        self.parameters = parameters
 
     def __repr__(self):
         return f"Validator({self.id})"
@@ -396,12 +511,11 @@ class Validator:
             },
         )
 
-    @classmethod
-    def from_json(cls, j):
-        return _from_json_with_id(cls, j)
+    @staticmethod
+    def from_json(j):
+        return Validator(uuid.UUID(j["id"]), j["name"], j["function"], j["parameters"])
 
 
-@dataclass
 class InspectTokenResponse:
     id: uuid.UUID
     token: str
@@ -411,6 +525,16 @@ class InspectTokenResponse:
 
     transformer: Transformer
     access_policy: AccessPolicy
+
+    def __init__(self, id, token, created, updated, transformer, access_policy):
+        self.id = id
+        self.token = token
+
+        self.created = created
+        self.updated = updated
+
+        self.transformer = transformer
+        self.access_policy = access_policy
 
     def to_json(self):
         return ucjson.dumps(
@@ -425,9 +549,9 @@ class InspectTokenResponse:
             ensure_ascii=False,
         )
 
-    @classmethod
-    def from_json(cls, j):
-        return cls(
+    @staticmethod
+    def from_json(j):
+        return InspectTokenResponse(
             uuid.UUID(j["id"]),
             j["token"],
             iso8601.parse_date(j["created"]),
@@ -437,20 +561,24 @@ class InspectTokenResponse:
         )
 
 
-@dataclass
 class APIErrorResponse:
     error: str
     id: uuid.UUID
     identical: bool
+
+    def __init__(self, error, id, identical):
+        self.error = error
+        self.id = id
+        self.identical = identical
 
     def to_json(self):
         return ucjson.dumps(
             {"error": self.error, "id": self.id, "identical": self.identical}
         )
 
-    @classmethod
-    def from_json(cls, j):
-        return APIErrorResponse(**j)
+    @staticmethod
+    def from_json(j):
+        return APIErrorResponse(j["error"], j["id"], j["identical"])
 
 
 @dataclass
