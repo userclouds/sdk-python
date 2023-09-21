@@ -10,7 +10,7 @@ version = "1.0.10"
 description = "Python SDK for UserClouds"
 authors = [{ name = "UserClouds", email = "info@userclouds.com" }]
 classifiers = [
-    Development Status :: 4 - Beta
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.9",
