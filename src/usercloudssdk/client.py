@@ -1,32 +1,34 @@
+from __future__ import annotations
+
 import base64
 import time
-import uuid
 import urllib.parse
+import uuid
+from dataclasses import asdict
 
 import jwt
 import requests
-from dataclasses import asdict
 
+from . import ucjson
+from .constants import AUTHN_TYPE_PASSWORD
 from .models import (
     Accessor,
     AccessPolicy,
     AccessPolicyTemplate,
     APIErrorResponse,
     Column,
-    InspectTokenResponse,
-    Mutator,
-    Purpose,
-    ResourceID,
-    UserResponse,
-    Transformer,
-    Object,
-    ObjectType,
     Edge,
     EdgeType,
+    InspectTokenResponse,
+    Mutator,
+    Object,
+    ObjectType,
     Organization,
+    Purpose,
+    ResourceID,
+    Transformer,
+    UserResponse,
 )
-from .constants import AUTHN_TYPE_PASSWORD
-from . import ucjson
 
 
 class Error(BaseException):
