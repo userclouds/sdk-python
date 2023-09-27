@@ -1,30 +1,30 @@
 from usercloudssdk.client import Client
-from usercloudssdk.models import (
-    AccessPolicy,
-    AccessPolicyTemplate,
-    AccessPolicyComponent,
-    Column,
-    ColumnInputConfig,
-    ColumnOutputConfig,
-    Accessor,
-    Mutator,
-    Purpose,
-    ResourceID,
-    UserSelectorConfig,
-    Transformer,
-)
 from usercloudssdk.constants import (
-    DATA_TYPE_STRING,
-    DATA_TYPE_ADDRESS,
-    COLUMN_INDEX_TYPE_NONE,
     COLUMN_INDEX_TYPE_INDEXED,
+    COLUMN_INDEX_TYPE_NONE,
+    DATA_TYPE_ADDRESS,
+    DATA_TYPE_STRING,
     POLICY_TYPE_COMPOSITE_INTERSECTION,
     TRANSFORM_TYPE_TRANSFORM,
 )
+from usercloudssdk.models import (
+    Accessor,
+    AccessPolicy,
+    AccessPolicyComponent,
+    AccessPolicyTemplate,
+    Column,
+    ColumnInputConfig,
+    ColumnOutputConfig,
+    Mutator,
+    Purpose,
+    ResourceID,
+    Transformer,
+    UserSelectorConfig,
+)
 from usercloudssdk.policies import (
     AccessPolicyOpen,
-    ValidatorOpen,
     TransformerPassThrough,
+    ValidatorOpen,
 )
 
 client_id = "<REPLACE ME>"
@@ -39,7 +39,6 @@ url = "<REPLACE ME>"
 
 
 def setup(c: Client):
-
     # create phone number and home address columns
     c.CreateColumn(
         Column(
