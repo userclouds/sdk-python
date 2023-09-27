@@ -1,32 +1,36 @@
+from __future__ import annotations
+
 import base64
+import os
 import time
-import uuid
 import urllib.parse
+import uuid
+from dataclasses import asdict
 
 import jwt
 import requests
-from dataclasses import asdict
 
+from . import ucjson
+from .constants import AUTHN_TYPE_PASSWORD
+from .errors import UserCloudsSDKError
 from .models import (
     Accessor,
     AccessPolicy,
     AccessPolicyTemplate,
     APIErrorResponse,
     Column,
-    InspectTokenResponse,
-    Mutator,
-    Purpose,
-    ResourceID,
-    UserResponse,
-    Transformer,
-    Object,
-    ObjectType,
     Edge,
     EdgeType,
+    InspectTokenResponse,
+    Mutator,
+    Object,
+    ObjectType,
     Organization,
+    Purpose,
+    ResourceID,
+    Transformer,
+    UserResponse,
 )
-from .constants import AUTHN_TYPE_PASSWORD
-from . import ucjson
 
 
 class Error(BaseException):
@@ -43,18 +47,35 @@ class Error(BaseException):
         return Error(j["error"], j["request_id"])
 
 
+def read_env(name: str, desc: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise UserCloudsSDKError(
+            f"Missing environment variable '{name}': UserClouds {desc}"
+        )
+    return value
+
+
 class Client:
     url: str
     client_id: str
     _client_secret: str
     _request_kwargs: dict
-
     _access_token: str
 
-    def __init__(self, url, id, secret, **kwargs):
+    @classmethod
+    def from_env(cls, **kwargs):
+        return cls(
+            url=read_env("TENANT_URL", "Tenant URL"),
+            id=read_env("CLIENT_ID", "Client ID"),
+            secret=read_env("CLIENT_SECRET", "Client Secret"),
+            **kwargs,
+        )
+
+    def __init__(self, url: str, client_id: str, client_secret: str, **kwargs):
         self.url = url
-        self.client_id = urllib.parse.quote(id)
-        self._client_secret = urllib.parse.quote(secret)
+        self.client_id = urllib.parse.quote(client_id)
+        self._client_secret = urllib.parse.quote(client_secret)
         self._request_kwargs = kwargs
 
         self._access_token = self._get_access_token()
