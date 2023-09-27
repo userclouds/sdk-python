@@ -1,9 +1,10 @@
 import datetime
-import iso8601
 import uuid
+from dataclasses import dataclass
+
+import iso8601
 
 from . import ucjson
-from dataclasses import dataclass
 
 
 class User:

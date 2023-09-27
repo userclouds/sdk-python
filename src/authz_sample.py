@@ -1,13 +1,7 @@
 import uuid
 
 from usercloudssdk.client import Client, Error
-from usercloudssdk.models import (
-    Object,
-    ObjectType,
-    Edge,
-    EdgeType,
-    Attribute,
-)
+from usercloudssdk.models import Attribute, Edge, EdgeType, Object, ObjectType
 
 client_id = "<REPLACE ME>"
 client_secret = "<REPLACE ME>"
