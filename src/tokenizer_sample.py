@@ -1,19 +1,19 @@
 import functools
 
 from usercloudssdk.client import Client, Error
+from usercloudssdk.constants import (
+    DATA_TYPE_STRING,
+    POLICY_TYPE_COMPOSITE_INTERSECTION,
+    TRANSFORM_TYPE_TRANSFORM,
+)
 from usercloudssdk.models import (
     AccessPolicy,
-    Transformer,
     AccessPolicyComponent,
     AccessPolicyTemplate,
     ResourceID,
+    Transformer,
 )
 from usercloudssdk.policies import AccessPolicyOpen, TransformerUUID
-from usercloudssdk.constants import (
-    POLICY_TYPE_COMPOSITE_INTERSECTION,
-    DATA_TYPE_STRING,
-    TRANSFORM_TYPE_TRANSFORM,
-)
 
 client_id = "<REPLACE ME>"
 client_secret = "<REPLACE ME>"
