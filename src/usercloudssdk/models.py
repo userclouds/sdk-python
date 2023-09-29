@@ -35,15 +35,13 @@ class UserResponse:
     id: uuid.UUID
     updated_at: datetime.datetime
     profile: dict
-    require_mfa: bool
-    authns: list[str]
+    organization_id: uuid.UUID
 
-    def __init__(self, id, updated_at, profile, require_mfa, authns):
+    def __init__(self, id, updated_at, profile, organization_id):
         self.id = id
         self.updated_at = updated_at
         self.profile = profile
-        self.require_mfa = require_mfa
-        self.authns = authns
+        self.organization_id = organization_id
 
     def to_json(self):
         return ucjson.dumps(
@@ -51,8 +49,7 @@ class UserResponse:
                 "id": str(self.id),
                 "updated_at": self.updated_at.isoformat(),
                 "profile": self.profile,
-                "require_mfa": self.require_mfa,
-                "authns": self.authns,
+                "organization_id": str(self.organization_id),
             }
         )
 
@@ -62,8 +59,7 @@ class UserResponse:
             uuid.UUID(j["id"]),
             datetime.datetime.fromtimestamp(j["updated_at"]),
             j["profile"],
-            j["require_mfa"],
-            j["authns"],
+            uuid.UUID(j["organization_id"]),
         )
 
 
