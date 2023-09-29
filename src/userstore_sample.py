@@ -27,9 +27,9 @@ from usercloudssdk.policies import (
     ValidatorOpen,
 )
 
-client_id = "<REPLACE ME>"
-client_secret = "<REPLACE ME>"
-url = "<REPLACE ME>"
+client_id = "4949c1816a70e2b45cfaee213e943ff1"
+client_secret = "asdf"
+url = "https://jwangllc-non-orgtenant.tenant.staging.userclouds.com"
 
 
 # This sample shows you how to create new columns in the user store and create access
@@ -293,6 +293,9 @@ def example(
 
     # create a user
     uid = c.CreateUser()
+
+    # retrieve the user the "old way" (not using accessors) just for illustration
+    user = c.GetUser(uid)
 
     # set the user's info using the mutator
     c.ExecuteMutator(
