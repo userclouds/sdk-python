@@ -294,6 +294,9 @@ def example(
     # create a user
     uid = c.CreateUser()
 
+    # retrieve the user the "old way" (not using accessors) just for illustration
+    user = c.GetUser(uid)
+
     # set the user's info using the mutator
     c.ExecuteMutator(
         mutator.id,
