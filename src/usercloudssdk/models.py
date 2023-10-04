@@ -181,6 +181,7 @@ class Accessor:
     description: str
     columns: list[ColumnOutputConfig]
     access_policy: ResourceID
+    token_access_policy: ResourceID
     selector_config: UserSelectorConfig
     purposes: list[ResourceID]
     version: int
@@ -194,6 +195,7 @@ class Accessor:
         access_policy,
         selector_config,
         purposes,
+        token_access_policy=None,
         version=0,
     ):
         self.id = id
@@ -203,6 +205,7 @@ class Accessor:
         self.access_policy = access_policy
         self.selector_config = selector_config
         self.purposes = purposes
+        self.token_access_policy = token_access_policy
         self.version = version
 
     def to_json(self):
@@ -216,6 +219,7 @@ class Accessor:
                 "access_policy": self.access_policy,
                 "selector_config": self.selector_config.to_json(),
                 "purposes": self.purposes,
+                "token_access_policy": self.token_access_policy,
             }
         )
 
@@ -229,6 +233,7 @@ class Accessor:
             ResourceID.from_json(j["access_policy"]),
             UserSelectorConfig.from_json(j["selector_config"]),
             j["purposes"],
+            ResourceID.from_json(j["token_access_policy"]),
             j["version"],
         )
 
@@ -600,7 +605,7 @@ class Address:
 class Object:
     id: uuid.UUID
     type_id: uuid.UUID
-    alias: str
+    alias: str = None
     created: datetime.datetime = None
     updated: datetime.datetime = None
     deleted: datetime.datetime = None
