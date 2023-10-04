@@ -82,6 +82,9 @@ def setup_authz(c: Client):
 
 
 def test_authz(c: Client):
+    original_obj_count = len(c.ListObjects())
+    original_edge_count = len(c.ListEdges())
+
     objects = []
     edges = []
 
@@ -89,6 +92,7 @@ def test_authz(c: Client):
         user = c.CreateObject(
             Object(id=uuid.uuid4(), type_id=DocUserObjectType.id, alias="user")
         )
+        user = c.GetObject(user.id)  # no-op, just illustrative
         objects.append(user)
 
         folder1 = c.CreateObject(
@@ -111,16 +115,16 @@ def test_authz(c: Client):
         )
         objects.append(doc2)
 
-        edges.append(
-            c.CreateEdge(
-                Edge(
-                    id=uuid.uuid4(),
-                    edge_type_id=UserViewFolderEdgeType.id,
-                    source_object_id=user.id,
-                    target_object_id=folder1.id,
-                )
+        new_edge = c.CreateEdge(
+            Edge(
+                id=uuid.uuid4(),
+                edge_type_id=UserViewFolderEdgeType.id,
+                source_object_id=user.id,
+                target_object_id=folder1.id,
             )
         )
+        new_edge = c.GetEdge(new_edge.id)  # no-op, just illustrative
+        edges.append(new_edge)
 
         edges.append(
             c.CreateEdge(
@@ -167,13 +171,25 @@ def test_authz(c: Client):
         for o in objects:
             c.DeleteObject(o.id)
 
+    final_obj_count = len(c.ListObjects())
+    final_edge_count = len(c.ListEdges())
+
+    if final_obj_count != original_obj_count:
+        raise SampleError("object count changed")
+
+    if final_edge_count != original_edge_count:
+        raise SampleError("edge count changed")
+
 
 def cleanup(c: Client):
-    c.DeleteEdgeType(UserViewFolderEdgeType.id)
+    user_view_et = c.GetEdgeType(UserViewFolderEdgeType.id)  # no-op, just illustrative
+    c.DeleteEdgeType(user_view_et.id)
     c.DeleteEdgeType(FolderViewFolderEdgeType.id)
     c.DeleteEdgeType(FolderViewDocEdgeType.id)
+
+    doc_ot = c.GetObjectType(DocumentObjectType.id)  # no-op, just illustrative
+    c.DeleteObjectType(doc_ot.id)
     c.DeleteObjectType(DocUserObjectType.id)
-    c.DeleteObjectType(DocumentObjectType.id)
     c.DeleteObjectType(FolderObjectType.id)
 
 

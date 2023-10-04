@@ -28,6 +28,10 @@ def test_access_policies(c: Client):
 
     try:
         created_apt = c.CreateAccessPolicyTemplate(new_apt, if_not_exists=True)
+        # no op, but illustrates how to get a policy template
+        created_apt = c.GetAccessPolicyTemplate(ResourceID(id=created_apt.id))
+        created_apt.description = "updated description"
+        c.UpdateAccessPolicyTemplate(created_apt)
     except Error as e:
         print("failed to create new access policy template: ", e)
         raise
@@ -44,6 +48,8 @@ def test_access_policies(c: Client):
 
     try:
         created_ap = c.CreateAccessPolicy(new_ap, if_not_exists=True)
+        # no op, but illustrates how to get a policy
+        created_ap = c.GetAccessPolicy(ResourceID(id=created_ap.id))
     except Error as e:
         print("failed to create new access policy: ", e)
         raise
@@ -104,7 +110,9 @@ def test_access_policies(c: Client):
         raise
 
     try:
-        if not c.DeleteAccessPolicyTemplate(created_apt.id, 0):
+        if not c.DeleteAccessPolicyTemplate(
+            created_apt.id, 1
+        ) or not c.DeleteAccessPolicyTemplate(created_apt.id, 0):
             print("failed to delete access policy template but no error?")
     except Error as e:
         print("failed to delete access policy template: ", e)

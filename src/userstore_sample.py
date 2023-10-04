@@ -3,6 +3,7 @@ from usercloudssdk.constants import (
     COLUMN_INDEX_TYPE_INDEXED,
     COLUMN_INDEX_TYPE_NONE,
     DATA_TYPE_ADDRESS,
+    DATA_TYPE_BOOLEAN,
     DATA_TYPE_STRING,
     POLICY_TYPE_COMPOSITE_INTERSECTION,
     TRANSFORM_TYPE_TRANSFORM,
@@ -39,6 +40,24 @@ url = "<REPLACE ME>"
 
 
 def setup(c: Client):
+    # illustrate CRUD for columns
+    col = c.CreateColumn(
+        Column(
+            None,
+            "temp_column",
+            DATA_TYPE_BOOLEAN,
+            False,
+            "",
+            COLUMN_INDEX_TYPE_NONE,
+        ),
+        if_not_exists=True,
+    )
+    c.ListColumns()
+    col = c.GetColumn(col.id)
+    col.name = "temp_column_renamed"
+    c.UpdateColumn(col)
+    c.DeleteColumn(col.id)
+
     # create phone number and home address columns
     c.CreateColumn(
         Column(
@@ -64,6 +83,17 @@ def setup(c: Client):
         if_not_exists=True,
     )
 
+    # illustrate CRUD for purposes
+    purpose = c.CreatePurpose(
+        Purpose(None, "temp_purpose", "temp_purpose_description"), if_not_exists=True
+    )
+    c.ListPurposes()
+    purpose = c.GetPurpose(purpose.id)
+    purpose.description = "new description"
+    c.UpdatePurpose(purpose)
+    c.DeletePurpose(purpose.id)
+
+    # create purposes for security, support and marketing
     c.CreatePurpose(
         Purpose(
             None,
@@ -164,10 +194,11 @@ function transform(data, params) {
 
     # Here we create accessors for two example teams: (1) security team and (2) support
     # team
+
     acc_support = Accessor(
         None,
         "PIIAccessor-SupportTeam",
-        "Accessor for support team",
+        "New Accessor",
         [
             ColumnOutputConfig(
                 column=ResourceID(name="phone_number"),
@@ -191,6 +222,10 @@ function transform(data, params) {
         [ResourceID(name="support")],
     )
     acc_support = c.CreateAccessor(acc_support, if_not_exists=True)
+    acc_support.description = "Accessor for support team"
+    acc_support = c.UpdateAccessor(acc_support)
+    acc_support = c.GetAccessor(acc_support.id)
+    c.ListAccessors()
 
     acc_security = Accessor(
         None,
@@ -258,7 +293,7 @@ function transform(data, params) {
     mutator = Mutator(
         None,
         "PhoneAndAddressMutator",
-        "Mutator for updating phone number and home address",
+        "New mutator",
         [
             ColumnInputConfig(
                 column=ResourceID(name="phone_number"),
@@ -273,6 +308,10 @@ function transform(data, params) {
         UserSelectorConfig("{id} = ?"),
     )
     mutator = c.CreateMutator(mutator, if_not_exists=True)
+    mutator.description = "Mutator for updating phone number and home address"
+    mutator = c.UpdateMutator(mutator)
+    mutator = c.GetMutator(mutator.id)
+    c.ListMutators()
 
     return acc_support, acc_security, acc_marketing, mutator
 
@@ -296,6 +335,15 @@ def example(
 
     # retrieve the user the "old way" (not using accessors) just for illustration
     user = c.GetUser(uid)
+
+    # update the user using the "old way" (not using mutators) just for illustration
+    profile = user.profile
+    profile["phone_number"] = "123-456-7890"
+    c.UpdateUser(uid, profile)
+
+    # retrieve the user the "old way" (not using accessors) just for illustration
+    user = c.GetUser(uid)
+    print(f"old way: user's details are {user.profile}\n")
 
     # set the user's info using the mutator
     c.ExecuteMutator(
@@ -327,7 +375,7 @@ Main St", "locality":"Pleasantville"}]',
     # now retrieve the user's info using the accessor with the right context
     resolved = c.ExecuteAccessor(acc_support.id, {"team": "support_team"}, [uid])
     # expect ['["XXX-XXX-7890","<home address hidden>"]']
-    print(f"support context: user's details are {resolved}")
+    print(f"support context: user's details are {resolved}\n")
 
     resolved = c.ExecuteAccessor(
         acc_security.id,
@@ -335,7 +383,7 @@ Main St", "locality":"Pleasantville"}]',
         ["%Evergreen%", "123-456-7890"],
     )
     # expect full details
-    print(f"security context: user's details are {resolved}")
+    print(f"security context: user's details are {resolved}\n")
 
     resolved = c.ExecuteAccessor(
         acc_marketing.id,
@@ -343,9 +391,23 @@ Main St", "locality":"Pleasantville"}]',
         [uid],
     )
     # expect [] (due to team mismatch in access policy)
-    print(f"marketing context: user's details are {resolved}")
+    print(f"marketing context: user's details are {resolved}\n")
 
     c.DeleteUser(uid)
+
+
+def cleanup(
+    c: Client,
+    acc_support: Accessor,
+    acc_security: Accessor,
+    acc_marketing: Accessor,
+    mutator: Mutator,
+):
+    # delete the accessors and mutators
+    c.DeleteAccessor(acc_support.id)
+    c.DeleteAccessor(acc_security.id)
+    c.DeleteAccessor(acc_marketing.id)
+    c.DeleteMutator(mutator.id)
 
 
 if __name__ == "__main__":
@@ -356,3 +418,5 @@ if __name__ == "__main__":
 
     # run the example
     example(c, acc_support, acc_security, acc_marketing, mutator)
+
+    cleanup(c, acc_support, acc_security, acc_marketing, mutator)
