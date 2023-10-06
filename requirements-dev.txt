@@ -1,0 +1,5 @@
+black
+ruff
+pyupgrade
+isort
+pytest>=7.4.2,<8
