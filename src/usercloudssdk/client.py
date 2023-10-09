@@ -7,8 +7,8 @@ import urllib.parse
 import uuid
 from dataclasses import asdict
 
+import httpx
 import jwt
-import requests
 
 from . import ucjson
 from .constants import AUTHN_TYPE_PASSWORD
@@ -56,32 +56,40 @@ def read_env(name: str, desc: str) -> str:
     return value
 
 
-class Client:
-    url: str
-    client_id: str
-    _client_secret: str
-    _request_kwargs: dict
-    _access_token: str
+def create_http_client(url: str):
+    return httpx.Client(base_url=url)
 
+
+class Client:
     @classmethod
-    def from_env(cls, **kwargs):
+    def from_env(cls, client_factory=create_http_client, **kwargs):
         return cls(
             url=read_env("TENANT_URL", "Tenant URL"),
-            id=read_env("CLIENT_ID", "Client ID"),
-            secret=read_env("CLIENT_SECRET", "Client Secret"),
+            client_id=read_env("CLIENT_ID", "Client ID"),
+            client_secret=read_env("CLIENT_SECRET", "Client Secret"),
+            client_factory=client_factory,
             **kwargs,
         )
 
-    def __init__(self, url: str, client_id: str, client_secret: str, **kwargs):
-        self.url = url
-        self.client_id = urllib.parse.quote(client_id)
-        self._client_secret = urllib.parse.quote(client_secret)
+    def __init__(
+        self,
+        url: str,
+        client_id: str,
+        client_secret: str,
+        client_factory=create_http_client,
+        **kwargs,
+    ):
+        self._authorization = base64.b64encode(
+            bytes(
+                f"{ urllib.parse.quote(client_id)}:{ urllib.parse.quote(client_secret)}",
+                "ISO-8859-1",
+            )
+        ).decode("ascii")
+        self._client = client_factory(url)
         self._request_kwargs = kwargs
-
         self._access_token = self._get_access_token()
 
     # User Operations
-
     def CreateUser(self) -> uuid.UUID:
         body = {}
 
@@ -708,20 +716,16 @@ class Client:
 
     def _get_access_token(self) -> str:
         # Encode the client ID and client secret
-        authorization = base64.b64encode(
-            bytes(f"{self.client_id}:{self._client_secret}", "ISO-8859-1")
-        ).decode("ascii")
-
         headers = {
-            "Authorization": f"Basic {authorization}",
+            "Authorization": f"Basic {self._authorization}",
             "Content-Type": "application/x-www-form-urlencoded",
         }
         body = {"grant_type": "client_credentials"}
 
         # Note that we use requests directly here (instead of _post) because we don't
         # want to refresh the access token as we are trying to get it. :)
-        r = requests.post(
-            self.url + "/oidc/token",
+        r = self._client.post(
+            "/oidc/token",
             headers=headers,
             data=body,
             **self._request_kwargs,
@@ -754,7 +758,7 @@ class Client:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
-        r = requests.get(self.url + url, headers=self._get_headers(), **args)
+        r = self._client.get(url, headers=self._get_headers(), **args)
         j = ucjson.loads(r.text)
 
         if r.status_code >= 400:
@@ -768,7 +772,7 @@ class Client:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
-        r = requests.post(self.url + url, headers=self._get_headers(), **args)
+        r = self._client.post(url, headers=self._get_headers(), **args)
         j = ucjson.loads(r.text)
 
         if r.status_code >= 400:
@@ -782,7 +786,7 @@ class Client:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
-        r = requests.put(self.url + url, headers=self._get_headers(), **args)
+        r = self._client.put(url, headers=self._get_headers(), **args)
         j = ucjson.loads(r.text)
 
         if r.status_code >= 400:
@@ -796,7 +800,7 @@ class Client:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
-        r = requests.delete(self.url + url, headers=self._get_headers(), **args)
+        r = self._client.delete(url, headers=self._get_headers(), **args)
 
         if r.status_code >= 400:
             j = ucjson.loads(r.text)
