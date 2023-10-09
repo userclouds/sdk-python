@@ -31,4 +31,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/userclouds/sdk-python"
+Documentation = "https://docs.userclouds.com/"
+Source = "https://github.com/userclouds/sdk-python"
+Changelog = "https://github.com/userclouds/sdk-python/blob/main/CHANGELOG.md"
 

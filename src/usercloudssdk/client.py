@@ -67,8 +67,8 @@ class Client:
     def from_env(cls, **kwargs):
         return cls(
             url=read_env("TENANT_URL", "Tenant URL"),
-            id=read_env("CLIENT_ID", "Client ID"),
-            secret=read_env("CLIENT_SECRET", "Client Secret"),
+            client_id=read_env("CLIENT_ID", "Client ID"),
+            client_secret=read_env("CLIENT_SECRET", "Client Secret"),
             **kwargs,
         )
 
