@@ -19,6 +19,8 @@ from .models import (
     AccessPolicyTemplate,
     APIErrorResponse,
     Column,
+    ColumnRetentionDurationResponse,
+    ColumnRetentionDurationsResponse,
     Edge,
     EdgeType,
     InspectTokenResponse,
@@ -29,6 +31,8 @@ from .models import (
     Purpose,
     ResourceID,
     Transformer,
+    UpdateColumnRetentionDurationRequest,
+    UpdateColumnRetentionDurationsRequest,
     UserResponse,
 )
 
@@ -210,6 +214,43 @@ class Client:
             f"/userstore/config/purposes/{purpose.id}", data=ucjson.dumps(body)
         )
         return Purpose.from_json(j)
+
+    # Retention Duration Operations
+
+    # get a specific column purpose retention duration
+    def GetSoftDeletedRetentionDurationOnColumn(
+        self, columnID: uuid.UUID, durationID: uuid.UUID
+    ) -> ColumnRetentionDurationResponse:
+        j = self._get(f"/userstore/config/columns/{columnID}/softdeletedretentiondurations/{durationID}")
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    # get the retention duration for each purpose for a given column
+    def GetSoftDeletedRetentionDurationsOnColumn(
+        self, columnID: uuid.UUID
+    ) -> ColumnRetentionDurationsResponse:
+        j = self._get(f"/userstore/config/columns/{columnID}/softdeletedretentiondurations")
+        return ColumnRetentionDurationsResponse.from_json(j)
+
+    # delete a specific column purpose retention duration
+    def DeleteSoftDeletedRetentionDurationOnColumn(
+        self, columnID: uuid.UUID, durationID: uuid.UUID
+    ) -> str:
+        return self._delete(f"/userstore/config/columns/{columnID}/softdeletedretentiondurations/{durationID}")
+
+    # update a specific column purpose retention duration
+    def UpdateSoftDeletedRetentionDurationOnColumn(
+        self, columnID: uuid.UUID, durationID: uuid.UUID, req: UpdateColumnRetentionDurationRequest
+    ) -> ColumnRetentionDurationResponse:
+        j = self._put(f"/userstore/config/columns/{columnID}/softdeletedretentiondurations/{durationID}", req.to_json())
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    # update the specified purpose retention durations for the column
+    # - durations can be added, deleted, or updated for each purpose
+    def UpdateSoftDeletedRetentionDurationsOnColumn(
+        self, columnID: uuid.UUID, req: UpdateColumnRetentionDurationsRequest
+    ) -> ColumnRetentionDurationsResponse:
+        j = self._post(f"/userstore/config/columns/{columnID}/softdeletedretentiondurations", data=req.to_json())
+        return ColumnRetentionDurationsResponse.from_json(j)
 
     # Access Policy Templates
 

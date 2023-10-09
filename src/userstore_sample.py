@@ -16,10 +16,13 @@ from usercloudssdk.models import (
     Column,
     ColumnInputConfig,
     ColumnOutputConfig,
+    ColumnRetentionDuration,
     Mutator,
     Purpose,
     ResourceID,
+    RetentionDuration,
     Transformer,
+    UpdateColumnRetentionDurationsRequest,
     UserSelectorConfig,
 )
 from usercloudssdk.policies import (
@@ -59,7 +62,7 @@ def setup(c: Client):
     c.DeleteColumn(col.id)
 
     # create phone number and home address columns
-    c.CreateColumn(
+    phone_number = c.CreateColumn(
         Column(
             None,
             "phone_number",
@@ -94,7 +97,7 @@ def setup(c: Client):
     c.DeletePurpose(purpose.id)
 
     # create purposes for security, support and marketing
-    c.CreatePurpose(
+    security = c.CreatePurpose(
         Purpose(
             None,
             "security",
@@ -103,7 +106,7 @@ def setup(c: Client):
         if_not_exists=True,
     )
 
-    c.CreatePurpose(
+    support = c.CreatePurpose(
         Purpose(
             None,
             "support",
@@ -120,6 +123,28 @@ def setup(c: Client):
         ),
         if_not_exists=True,
     )
+
+    # retain phone numbers for security for 1 year and for support for 3 months after deletion
+
+    retention_durations_update_request = UpdateColumnRetentionDurationsRequest(
+        [
+            ColumnRetentionDuration(
+                duration_type="softdeleted",
+                duration=RetentionDuration(unit="year", duration=1),
+                column_id=phone_number.id,
+                purpose_id=security.id,
+            ),
+            ColumnRetentionDuration(
+                duration_type="softdeleted",
+                duration=RetentionDuration(unit="month", duration=3),
+                column_id=phone_number.id,
+                purpose_id=support.id,
+            ),
+        ],
+    )
+    retention_durations = c.UpdateSoftDeletedRetentionDurationsOnColumn(
+        phone_number.id,
+        retention_durations_update_request).retention_durations
 
     # Create an access policy that allows access to the data in the columns for security
     # and support purposes
@@ -313,7 +338,7 @@ function transform(data, params) {
     mutator = c.GetMutator(mutator.id)
     c.ListMutators()
 
-    return acc_support, acc_security, acc_marketing, mutator
+    return acc_support, acc_security, acc_marketing, mutator, retention_durations
 
 
 def example(
@@ -402,6 +427,7 @@ def cleanup(
     acc_security: Accessor,
     acc_marketing: Accessor,
     mutator: Mutator,
+    retention_durations: list[ColumnRetentionDuration],
 ):
     # delete the accessors and mutators
     c.DeleteAccessor(acc_support.id)
@@ -409,14 +435,20 @@ def cleanup(
     c.DeleteAccessor(acc_marketing.id)
     c.DeleteMutator(mutator.id)
 
+    # delete the retention durations
+    for rd in retention_durations:
+        crd = ColumnRetentionDuration.from_json(rd)
+        c.DeleteSoftDeletedRetentionDurationOnColumn(crd.column_id, crd.id)
+
 
 if __name__ == "__main__":
     c = Client(url, client_id, client_secret)
 
-    # set up the userstore with the right columns, policies, accessors and mutators
-    acc_support, acc_security, acc_marketing, mutator = setup(c)
+    # set up the userstore with the right columns, policies, accessors, mutators,
+    # and retention durations
+    acc_support, acc_security, acc_marketing, mutator, retention_durations = setup(c)
 
     # run the example
     example(c, acc_support, acc_security, acc_marketing, mutator)
 
-    cleanup(c, acc_support, acc_security, acc_marketing, mutator)
+    cleanup(c, acc_support, acc_security, acc_marketing, mutator, retention_durations)
