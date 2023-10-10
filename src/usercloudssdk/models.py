@@ -287,8 +287,8 @@ class Mutator:
                 "name": self.name,
                 "description": self.description,
                 "version": self.version,
-                "columns": self.column_names,
-                "access_policy": str(self.access_policy_id),
+                "columns": self.columns,
+                "access_policy": str(self.access_policy),
                 "selector_config": self.selector_config.to_json(),
             }
         )

@@ -145,7 +145,7 @@ def setup(c: Client):
 
     # Create a transformer that transforms the data in the columns for security and
     # support teams
-    phone_transformer_function = """
+    phone_transformer_function = r"""
 function transform(data, params) {
     if (params.team == "security_team") {
         return data;
@@ -410,13 +410,14 @@ def cleanup(
     c.DeleteMutator(mutator.id)
 
 
-if __name__ == "__main__":
-    c = Client(url, client_id, client_secret)
-
+def run_userstore_sample(c: Client) -> None:
     # set up the userstore with the right columns, policies, accessors and mutators
     acc_support, acc_security, acc_marketing, mutator = setup(c)
-
     # run the example
     example(c, acc_support, acc_security, acc_marketing, mutator)
-
     cleanup(c, acc_support, acc_security, acc_marketing, mutator)
+
+
+if __name__ == "__main__":
+    c = Client(url, client_id, client_secret)
+    run_userstore_sample(c)
