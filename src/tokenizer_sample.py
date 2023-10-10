@@ -218,10 +218,13 @@ def test_error_handling(c):
             raise
 
 
-if __name__ == "__main__":
-    c = Client(url, client_id, client_secret)
-
+def run_tokenizer_sample(c: Client) -> None:
     test_access_policies(c)
     test_transformers(c)
     test_token_apis(c)
     test_error_handling(c)
+
+
+if __name__ == "__main__":
+    c = Client(url, client_id, client_secret)
+    run_tokenizer_sample(c)
