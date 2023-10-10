@@ -84,7 +84,7 @@ class Client:
 
         self._access_token = self._get_access_token()
 
-    # User Operations
+    ### User Operations
 
     def CreateUser(self) -> uuid.UUID:
         body = {}
@@ -131,7 +131,7 @@ class Client:
     def DeleteUser(self, id: uuid.UUID) -> bool:
         return self._delete(f"/authn/users/{id}")
 
-    # Column Operations
+    ### Column Operations
 
     def CreateColumn(self, column: Column, if_not_exists=False) -> Column:
         body = {"column": column.__dict__}
@@ -172,7 +172,7 @@ class Client:
         j = self._put(f"/userstore/config/columns/{column.id}", data=ucjson.dumps(body))
         return Column.from_json(j)
 
-    # Purpose Operations
+    ### Purpose Operations
 
     def CreatePurpose(self, purpose: Purpose, if_not_exists=False) -> Purpose:
         body = {"purpose": purpose.__dict__}
@@ -215,7 +215,96 @@ class Client:
         )
         return Purpose.from_json(j)
 
-    # Retention Duration Operations
+    ### Retention Duration Operations
+
+    ## Tenant Retention Duration
+
+    # A configured tenant retention duration will apply for
+    # all column purposes that do not have a configured purpose
+    # retention duration default or a configured column purpose
+    # retention duration. If a tenant retention duration is
+    # not configured, soft-deleted values will not be retained
+    # by default.
+
+    # create a tenant retention duration default
+    def CreateSoftDeletedRetentionDurationOnTenant(
+        self, req: UpdateColumnRetentionDurationRequest
+    ) -> ColumnRetentionDurationResponse:
+        j = self._post(f"/userstore/config/softdeletedretentiondurations", data=req.to_json())
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    # delete a tenant retention duration default
+    def DeleteSoftDeletedRetentionDurationOnTenant(
+        self, durationID: uuid.UUID
+    ) -> str:
+        return self._delete(f"/userstore/config/softdeletedretentiondurations/{durationID}")
+
+    # get a specific tenant retention duration default
+    def GetSoftDeletedRetentionDurationOnTenant(
+        self, durationID: uuid.UUID
+    ) -> ColumnRetentionDurationResponse:
+        j = self._get(f"/userstore/config/softdeletedretentiondurations/{durationID}")
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    # get tenant retention duration, or default value if not specified
+    def GetDefaultSoftDeletedRetentionDurationOnTenant(
+        self
+    ) -> ColumnRetentionDurationResponse:
+        j = self._get(f"/userstore/config/softdeletedretentiondurations")
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    # update a specific tenant retention duration default
+    def UpdateSoftDeletedRetentionDurationOnTenant(
+        self, durationID: uuid.UUID, req: UpdateColumnRetentionDurationRequest
+    ) -> ColumnRetentionDurationResponse:
+        j = self._put(f"/userstore/config/softdeletedretentiondurations/{durationID}", req.to_json())
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    ## Purpose Retention Durations
+
+    # A configured purpose retention duration will apply for all
+    # column purposes that include the specified purpose, unless
+    # a retention duration has been configured for a specific
+    # column purpose.
+
+    # create a purpose retention duration default
+    def CreateSoftDeletedRetentionDurationOnPurpose(
+        self, purposeID: uuid.UUID, req: UpdateColumnRetentionDurationRequest
+    ) -> ColumnRetentionDurationResponse:
+        j = self._post(f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations", data=req.to_json())
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    # delete a purpose retention duration default
+    def DeleteSoftDeletedRetentionDurationOnPurpose(
+        self, purposeID: uuid.UUID, durationID: uuid.UUID
+    ) -> str:
+        return self._delete(f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations/{durationID}")
+
+    # get a specific purpose retention duration default
+    def GetSoftDeletedRetentionDurationOnPurpose(
+        self, purposeID: uuid.UUID, durationID: uuid.UUID
+    ) -> ColumnRetentionDurationResponse:
+        j = self._get(f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations/{durationID}")
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    # get purpose retention duration, or default value if not specified
+    def GetDefaultSoftDeletedRetentionDurationOnPurpose(
+        self, purposeID: uuid.UUID
+    ) -> ColumnRetentionDurationResponse:
+        j = self._get(f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations")
+        return ColumnRetentionDurationResponse.from_json(j)
+
+    # update a specific purpose retention duration default
+    def UpdateSoftDeletedRetentionDurationOnPurpose(
+        self, purposeID: uuid.UUID, durationID: uuid.UUID, req: UpdateColumnRetentionDurationRequest
+    ) -> ColumnRetentionDurationResponse:
+        j = self._put(f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations/{durationID}", req.to_json())
+
+    ## Column Retention Durations
+
+    # A configured column purpose retention duration will override
+    # any configured purpose level, tenant level, or system-level
+    # default retention durations.
 
     # get a specific column purpose retention duration
     def GetSoftDeletedRetentionDurationOnColumn(
@@ -252,9 +341,7 @@ class Client:
         j = self._post(f"/userstore/config/columns/{columnID}/softdeletedretentiondurations", data=req.to_json())
         return ColumnRetentionDurationsResponse.from_json(j)
 
-    # Access Policy Templates
-
-    # Access Policies
+    ### Access Policy Templates
 
     def CreateAccessPolicyTemplate(
         self, access_policy_template: AccessPolicyTemplate, if_not_exists=False
@@ -309,7 +396,7 @@ class Client:
             params={"template_version": str(version)},
         )
 
-    # Access Policies
+    ### Access Policies
 
     def CreateAccessPolicy(
         self, access_policy: AccessPolicy, if_not_exists=False
@@ -393,7 +480,7 @@ class Client:
     def DeleteTransformer(self, id: uuid.UUID):
         return self._delete(f"/tokenizer/policies/transformation/{id}")
 
-    # Accessor Operations
+    ### Accessor Operations
 
     def CreateAccessor(self, accessor: Accessor, if_not_exists=False) -> Accessor:
         body = {"accessor": accessor.__dict__}
@@ -448,7 +535,8 @@ class Client:
 
         return self._post("/userstore/api/accessors", data=ucjson.dumps(body))
 
-    # Mutator Operations
+    ### Mutator Operations
+
     def CreateMutator(self, mutator: Mutator, if_not_exists=False) -> Mutator:
         body = {"mutator": mutator.__dict__}
 
@@ -574,7 +662,7 @@ class Client:
         j = self._post("/tokenizer/tokens/actions/lookup", data=ucjson.dumps(body))
         return j["tokens"]
 
-    # AuthZ Operations
+    ### AuthZ Operations
 
     def ListObjects(
         self, limit: int = 0, starting_after: uuid.UUID = None
@@ -745,7 +833,7 @@ class Client:
         )
         return j.get("has_attribute")
 
-    # Access token helpers
+    ### Access Token Helpers
 
     def _get_access_token(self) -> str:
         # Encode the client ID and client secret
@@ -789,7 +877,7 @@ class Client:
     def _get_headers(self) -> dict:
         return {"Authorization": f"Bearer {self._access_token}"}
 
-    # Request helpers
+    ### Request Helpers
 
     def _get(self, url, **kwargs) -> dict:
         self._refresh_access_token_if_needed()
