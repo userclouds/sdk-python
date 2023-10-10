@@ -25,10 +25,13 @@ dependencies = [
   "iso8601 >= 1.1.0",
   "pycparser >= 2.21",
   "PyJWT >= 2.6.0",
-  "requests >= 2.31.0",
+  "httpx >= 0.25.0",
   "urllib3 >= 1.26.12"
 ]
 
 [project.urls]
 Homepage = "https://github.com/userclouds/sdk-python"
+Documentation = "https://docs.userclouds.com/"
+Source = "https://github.com/userclouds/sdk-python"
+Changelog = "https://github.com/userclouds/sdk-python/blob/main/CHANGELOG.md"
 
