@@ -53,13 +53,13 @@ class UserResponse:
             }
         )
 
-    @staticmethod
-    def from_json(j):
-        return UserResponse(
-            uuid.UUID(j["id"]),
-            datetime.datetime.fromtimestamp(j["updated_at"]),
-            j["profile"],
-            uuid.UUID(j["organization_id"]),
+    @classmethod
+    def from_json(cls, json_data):
+        return cls(
+            uuid.UUID(json_data["id"]),
+            datetime.datetime.fromtimestamp(json_data["updated_at"]),
+            json_data["profile"],
+            uuid.UUID(json_data["organization_id"]),
         )
 
 
@@ -155,9 +155,11 @@ class Purpose:
             {"id": str(self.id), "name": self.name, "description": self.description}
         )
 
-    @staticmethod
-    def from_json(j):
-        return Purpose(uuid.UUID(j["id"]), j["name"], j["description"])
+    @classmethod
+    def from_json(cls, json_data):
+        return cls(
+            uuid.UUID(json_data["id"]), json_data["name"], json_data["description"]
+        )
 
 
 class ColumnOutputConfig:
@@ -168,10 +170,11 @@ class ColumnOutputConfig:
         self.column = column
         self.transformer = transformer
 
-    @staticmethod
-    def from_json(j):
+    @classmethod
+    def from_json(cls, json_data):
         return ColumnOutputConfig(
-            ResourceID.from_json(j["column"]), ResourceID.from_json(j["transformer"])
+            ResourceID.from_json(json_data["column"]),
+            ResourceID.from_json(json_data["transformer"]),
         )
 
 
@@ -223,18 +226,18 @@ class Accessor:
             }
         )
 
-    @staticmethod
-    def from_json(j):
-        return Accessor(
-            uuid.UUID(j["id"]),
-            j["name"],
-            j["description"],
-            j["columns"],
-            ResourceID.from_json(j["access_policy"]),
-            UserSelectorConfig.from_json(j["selector_config"]),
-            j["purposes"],
-            ResourceID.from_json(j["token_access_policy"]),
-            j["version"],
+    @classmethod
+    def from_json(cls, json_data):
+        return cls(
+            uuid.UUID(json_data["id"]),
+            json_data["name"],
+            json_data["description"],
+            json_data["columns"],
+            ResourceID.from_json(json_data["access_policy"]),
+            UserSelectorConfig.from_json(json_data["selector_config"]),
+            json_data["purposes"],
+            ResourceID.from_json(json_data["token_access_policy"]),
+            json_data["version"],
         )
 
 
@@ -246,10 +249,11 @@ class ColumnInputConfig:
         self.column = column
         self.validator = validator
 
-    @staticmethod
-    def from_json(j):
-        return ColumnInputConfig(
-            ResourceID.from_json(j["column"]), ResourceID.from_json(j["validator"])
+    @classmethod
+    def from_json(cls, json_data):
+        return cls(
+            ResourceID.from_json(json_data["column"]),
+            ResourceID.from_json(json_data["validator"]),
         )
 
 
@@ -287,22 +291,22 @@ class Mutator:
                 "name": self.name,
                 "description": self.description,
                 "version": self.version,
-                "columns": self.column_names,
-                "access_policy": str(self.access_policy_id),
+                "columns": self.columns,
+                "access_policy": str(self.access_policy),
                 "selector_config": self.selector_config.to_json(),
             }
         )
 
-    @staticmethod
-    def from_json(j):
-        return Mutator(
-            uuid.UUID(j["id"]),
-            j["name"],
-            j["description"],
-            j["columns"],
-            ResourceID.from_json(j["access_policy"]),
-            UserSelectorConfig.from_json(j["selector_config"]),
-            j["version"],
+    @classmethod
+    def from_json(cls, json_data):
+        return cls(
+            uuid.UUID(json_data["id"]),
+            json_data["name"],
+            json_data["description"],
+            json_data["columns"],
+            ResourceID.from_json(json_data["access_policy"]),
+            UserSelectorConfig.from_json(json_data["selector_config"]),
+            json_data["version"],
         )
 
 
@@ -341,14 +345,14 @@ class AccessPolicyTemplate:
             }
         )
 
-    @staticmethod
-    def from_json(j):
-        return AccessPolicyTemplate(
-            uuid.UUID(j["id"]),
-            j["name"],
-            j["description"],
-            j["function"],
-            j["version"],
+    @classmethod
+    def from_json(cls, json_data):
+        return cls(
+            uuid.UUID(json_data["id"]),
+            json_data["name"],
+            json_data["description"],
+            json_data["function"],
+            json_data["version"],
         )
 
 
@@ -377,12 +381,14 @@ class AccessPolicyComponent:
             obj["template_parameters"] = self.template_parameters
         return ucjson.dumps(obj)
 
-    @staticmethod
-    def from_json(j):
-        return AccessPolicyComponent(
-            j["policy"] if "policy" in j else "",
-            j["template"] if "template" in j else "",
-            j["template_parameters"] if "template_parameters" in j else "",
+    @classmethod
+    def from_json(cls, json_data):
+        return cls(
+            json_data["policy"] if "policy" in json_data else "",
+            json_data["template"] if "template" in json_data else "",
+            json_data["template_parameters"]
+            if "template_parameters" in json_data
+            else "",
         )
 
 
@@ -425,15 +431,15 @@ class AccessPolicy:
             }
         )
 
-    @staticmethod
-    def from_json(j):
-        return AccessPolicy(
-            uuid.UUID(j["id"]),
-            j["name"],
-            j["description"],
-            j["policy_type"],
-            j["version"],
-            [AccessPolicyComponent.from_json(c) for c in j["components"]],
+    @classmethod
+    def from_json(cls, json_data):
+        return cls(
+            uuid.UUID(json_data["id"]),
+            json_data["name"],
+            json_data["description"],
+            json_data["policy_type"],
+            json_data["version"],
+            [AccessPolicyComponent.from_json(apc) for apc in json_data["components"]],
         )
 
 
