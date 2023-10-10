@@ -547,7 +547,7 @@ class ColumnRetentionDuration:
         default_duration = None if self.default_duration == None else self.default_duration.to_json()
         return ucjson.dumps(
             {
-                "duration_type": duration_type,
+                "duration_type": self.duration_type,
                 "id": str(self.id),
                 "column_id": str(self.column_id),
                 "purpose_id": str(self.purpose_id),
@@ -585,7 +585,7 @@ class UpdateColumnRetentionDurationRequest:
     def to_json(self):
         return ucjson.dumps(
             {
-                "retention_duration": self.retention_duration.to_json(),
+                "retention_duration": self.retention_duration,
             }
         )
 
@@ -658,7 +658,7 @@ class ColumnRetentionDurationsResponse:
         return ucjson.dumps(
             {
                 "max_duration": self.max_duration.to_json(),
-                "retention_durations": self.retention_durations,
+                "retention_durations": [rd.to_json() for rd in self.retention_durations],
             }
         )
 
@@ -666,7 +666,7 @@ class ColumnRetentionDurationsResponse:
     def from_json(j):
         return ColumnRetentionDurationsResponse(
             RetentionDuration.from_json(j["max_duration"]),
-            j["retention_durations"],
+            [ColumnRetentionDuration.from_json(rd) for rd in j["retention_durations"]],
         )
 
 class Validator:
