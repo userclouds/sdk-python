@@ -193,13 +193,16 @@ def cleanup(c: Client):
     c.DeleteObjectType(FolderObjectType.id)
 
 
+def run_authz_sample(c: Client):
+    setup_authz(c)
+    test_authz(c)
+    cleanup(c)
+
+
 if __name__ == "__main__":
     c = Client(url, client_id, client_secret)
-
     try:
-        setup_authz(c)
-        test_authz(c)
-        cleanup(c)
+        run_authz_sample(c)
     except Error as e:
         print("Client Error: " + e.error)
         exit(1)

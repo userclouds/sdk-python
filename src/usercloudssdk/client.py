@@ -7,8 +7,8 @@ import urllib.parse
 import uuid
 from dataclasses import asdict
 
+import httpx
 import jwt
-import requests
 
 from . import ucjson
 from .constants import AUTHN_TYPE_PASSWORD
@@ -42,9 +42,9 @@ class Error(BaseException):
     def __repr__(self):
         return f"Error({self.error}, {self.code}, {self.request_id})"
 
-    @staticmethod
-    def from_json(j):
-        return Error(j["error"], j["request_id"])
+    @classmethod
+    def from_json(cls, json_data):
+        return Error(json_data["error"], json_data["request_id"])
 
 
 def read_env(name: str, desc: str) -> str:
@@ -56,37 +56,43 @@ def read_env(name: str, desc: str) -> str:
     return value
 
 
-class Client:
-    url: str
-    client_id: str
-    _client_secret: str
-    _request_kwargs: dict
-    _access_token: str
+def create_http_client(url: str):
+    return httpx.Client(base_url=url)
 
+
+class Client:
     @classmethod
-    def from_env(cls, **kwargs):
+    def from_env(cls, client_factory=create_http_client, **kwargs):
         return cls(
             url=read_env("TENANT_URL", "Tenant URL"),
-            id=read_env("CLIENT_ID", "Client ID"),
-            secret=read_env("CLIENT_SECRET", "Client Secret"),
+            client_id=read_env("CLIENT_ID", "Client ID"),
+            client_secret=read_env("CLIENT_SECRET", "Client Secret"),
+            client_factory=client_factory,
             **kwargs,
         )
 
-    def __init__(self, url: str, client_id: str, client_secret: str, **kwargs):
-        self.url = url
-        self.client_id = urllib.parse.quote(client_id)
-        self._client_secret = urllib.parse.quote(client_secret)
+    def __init__(
+        self,
+        url: str,
+        client_id: str,
+        client_secret: str,
+        client_factory=create_http_client,
+        **kwargs,
+    ):
+        self._authorization = base64.b64encode(
+            bytes(
+                f"{ urllib.parse.quote(client_id)}:{ urllib.parse.quote(client_secret)}",
+                "ISO-8859-1",
+            )
+        ).decode("ascii")
+        self._client = client_factory(url)
         self._request_kwargs = kwargs
-
         self._access_token = self._get_access_token()
 
     # User Operations
-
     def CreateUser(self) -> uuid.UUID:
-        body = {}
-
-        j = self._post("/authn/users", data=ucjson.dumps(body))
-        return j.get("id")
+        resp_json = self._post("/authn/users", data=ucjson.dumps({}))
+        return resp_json.get("id")
 
     def CreateUserWithPassword(self, username: str, password: str) -> uuid.UUID:
         body = {
@@ -95,8 +101,8 @@ class Client:
             "authn_type": AUTHN_TYPE_PASSWORD,
         }
 
-        j = self._post("/authn/users", data=ucjson.dumps(body))
-        return j.get("id")
+        resp_json = self._post("/authn/users", data=ucjson.dumps(body))
+        return resp_json.get("id")
 
     def ListUsers(
         self, limit: int = 0, starting_after: uuid.UUID = None, email: str = None
@@ -109,20 +115,19 @@ class Client:
         if email is not None:
             params["email"] = email
         params["version"] = "3"
-        j = self._get("/authn/users", params=params)
+        resp_json = self._get("/authn/users", params=params)
 
-        users = [UserResponse.from_json(ur) for ur in j["data"]]
+        users = [UserResponse.from_json(ur) for ur in resp_json["data"]]
         return users
 
     def GetUser(self, id: uuid.UUID) -> UserResponse:
-        j = self._get(f"/authn/users/{id}")
-        return UserResponse.from_json(j)
+        resp_json = self._get(f"/authn/users/{id}")
+        return UserResponse.from_json(resp_json)
 
     def UpdateUser(self, id: uuid.UUID, profile: dict) -> UserResponse:
         body = {"profile": profile}
-
-        j = self._put(f"/authn/users/{id}", data=ucjson.dumps(body))
-        return UserResponse.from_json(j)
+        resp_json = self._put(f"/authn/users/{id}", data=ucjson.dumps(body))
+        return UserResponse.from_json(resp_json)
 
     def DeleteUser(self, id: uuid.UUID) -> bool:
         return self._delete(f"/authn/users/{id}")
@@ -131,22 +136,21 @@ class Client:
 
     def CreateColumn(self, column: Column, if_not_exists=False) -> Column:
         body = {"column": column.__dict__}
-
         try:
-            j = self._post("/userstore/config/columns", data=ucjson.dumps(body))
-            return Column.from_json(j)
-        except Error as e:
+            resp_json = self._post("/userstore/config/columns", data=ucjson.dumps(body))
+            return Column.from_json(resp_json)
+        except Error as err:
             if if_not_exists:
-                column.id = _id_from_identical_conflict(e)
+                column.id = _id_from_identical_conflict(err)
                 return column
-            raise e
+            raise err
 
     def DeleteColumn(self, id: uuid.UUID) -> str:
         return self._delete(f"/userstore/config/columns/{id}")
 
     def GetColumn(self, id: uuid.UUID) -> Column:
-        j = self._get(f"/userstore/config/columns/{id}")
-        return Column.from_json(j)
+        resp_json = self._get(f"/userstore/config/columns/{id}")
+        return Column.from_json(resp_json)
 
     def ListColumns(
         self, limit: int = 0, starting_after: uuid.UUID = None
@@ -157,16 +161,17 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/userstore/config/columns", params=params)
-
-        columns = [Column.from_json(c) for c in j["data"]]
+        resp_json = self._get("/userstore/config/columns", params=params)
+        columns = [Column.from_json(col) for col in resp_json["data"]]
         return columns
 
     def UpdateColumn(self, column: Column) -> Column:
         body = {"column": column.__dict__}
 
-        j = self._put(f"/userstore/config/columns/{column.id}", data=ucjson.dumps(body))
-        return Column.from_json(j)
+        resp_json = self._put(
+            f"/userstore/config/columns/{column.id}", data=ucjson.dumps(body)
+        )
+        return Column.from_json(resp_json)
 
     # Purpose Operations
 
@@ -174,13 +179,15 @@ class Client:
         body = {"purpose": purpose.__dict__}
 
         try:
-            j = self._post("/userstore/config/purposes", data=ucjson.dumps(body))
-            return Purpose.from_json(j)
-        except Error as e:
+            resp_json = self._post(
+                "/userstore/config/purposes", data=ucjson.dumps(body)
+            )
+            return Purpose.from_json(resp_json)
+        except Error as err:
             if if_not_exists:
-                purpose.id = _id_from_identical_conflict(e)
+                purpose.id = _id_from_identical_conflict(err)
                 return purpose
-            raise e
+            raise err
 
     def DeletePurpose(self, id: uuid.UUID) -> str:
         return self._delete(f"/userstore/config/purposes/{id}")
@@ -198,18 +205,17 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/userstore/config/purposes", params=params)
-
-        purposes = [Purpose.from_json(p) for p in j["data"]]
+        resp_json = self._get("/userstore/config/purposes", params=params)
+        purposes = [Purpose.from_json(p) for p in resp_json["data"]]
         return purposes
 
     def UpdatePurpose(self, purpose: Purpose) -> Purpose:
         body = {"purpose": purpose.__dict__}
 
-        j = self._put(
+        resp_json = self._put(
             f"/userstore/config/purposes/{purpose.id}", data=ucjson.dumps(body)
         )
-        return Purpose.from_json(j)
+        return Purpose.from_json(resp_json)
 
     # Access Policy Templates
 
@@ -221,15 +227,15 @@ class Client:
         body = {"access_policy_template": access_policy_template.__dict__}
 
         try:
-            j = self._post(
+            resp_json = self._post(
                 "/tokenizer/policies/accesstemplate", data=ucjson.dumps(body)
             )
-            return AccessPolicyTemplate.from_json(j)
-        except Error as e:
+            return AccessPolicyTemplate.from_json(resp_json)
+        except Error as err:
             if if_not_exists:
-                access_policy_template.id = _id_from_identical_conflict(e)
+                access_policy_template.id = _id_from_identical_conflict(err)
                 return access_policy_template
-            raise e
+            raise err
 
     def ListAccessPolicyTemplates(
         self, limit: int = 0, starting_after: uuid.UUID = None
@@ -240,27 +246,27 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/tokenizer/policies/accesstemplate", params=params)
+        resp_json = self._get("/tokenizer/policies/accesstemplate", params=params)
 
-        templates = [AccessPolicyTemplate.from_json(p) for p in j["data"]]
+        templates = [AccessPolicyTemplate.from_json(apt) for apt in resp_json["data"]]
         return templates
 
     def GetAccessPolicyTemplate(self, rid: ResourceID):
         if rid.id is not None:
-            j = self._get(f"/tokenizer/policies/accesstemplate/{rid.id}")
+            resp_json = self._get(f"/tokenizer/policies/accesstemplate/{rid.id}")
         elif rid.name is not None:
-            j = self._get(f"/tokenizer/policies/accesstemplate?name={rid.name}")
+            resp_json = self._get(f"/tokenizer/policies/accesstemplate?name={rid.name}")
 
-        return AccessPolicyTemplate.from_json(j)
+        return AccessPolicyTemplate.from_json(resp_json)
 
     def UpdateAccessPolicyTemplate(self, access_policy_template: AccessPolicyTemplate):
         body = {"access_policy_template": access_policy_template.__dict__}
 
-        j = self._put(
+        resp_json = self._put(
             f"/tokenizer/policies/accesstemplate/{access_policy_template.id}",
             data=ucjson.dumps(body),
         )
-        return AccessPolicyTemplate.from_json(j)
+        return AccessPolicyTemplate.from_json(resp_json)
 
     def DeleteAccessPolicyTemplate(self, id: uuid.UUID, version: int):
         return self._delete(
@@ -276,13 +282,15 @@ class Client:
         body = {"access_policy": access_policy.__dict__}
 
         try:
-            j = self._post("/tokenizer/policies/access", data=ucjson.dumps(body))
-            return AccessPolicy.from_json(j)
-        except Error as e:
+            resp_json = self._post(
+                "/tokenizer/policies/access", data=ucjson.dumps(body)
+            )
+            return AccessPolicy.from_json(resp_json)
+        except Error as err:
             if if_not_exists:
-                access_policy.id = _id_from_identical_conflict(e)
+                access_policy.id = _id_from_identical_conflict(err)
                 return access_policy
-            raise e
+            raise err
 
     def ListAccessPolicies(self, limit: int = 0, starting_after: uuid.UUID = None):
         params = {}
@@ -291,27 +299,27 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/tokenizer/policies/access", params=params)
+        resp_json = self._get("/tokenizer/policies/access", params=params)
 
-        policies = [AccessPolicy.from_json(p) for p in j["data"]]
+        policies = [AccessPolicy.from_json(ap) for ap in resp_json["data"]]
         return policies
 
     def GetAccessPolicy(self, rid: ResourceID):
         if rid.id is not None:
-            j = self._get(f"/tokenizer/policies/access/{rid.id}")
+            resp_json = self._get(f"/tokenizer/policies/access/{rid.id}")
         elif rid.name is not None:
-            j = self._get(f"/tokenizer/policies/access?name={rid.name}")
+            resp_json = self._get(f"/tokenizer/policies/access?name={rid.name}")
 
-        return AccessPolicy.from_json(j)
+        return AccessPolicy.from_json(resp_json)
 
     def UpdateAccessPolicy(self, access_policy: AccessPolicy):
         body = {"access_policy": access_policy.__dict__}
 
-        j = self._put(
+        resp_json = self._put(
             f"/tokenizer/policies/access/{access_policy.id}",
             data=ucjson.dumps(body),
         )
-        return AccessPolicy.from_json(j)
+        return AccessPolicy.from_json(resp_json)
 
     def DeleteAccessPolicy(self, id: uuid.UUID, version: int):
         return self._delete(
@@ -325,15 +333,15 @@ class Client:
         body = {"transformer": transformer.__dict__}
 
         try:
-            j = self._post(
+            resp_json = self._post(
                 "/tokenizer/policies/transformation", data=ucjson.dumps(body)
             )
-            return Transformer.from_json(j)
-        except Error as e:
+            return Transformer.from_json(resp_json)
+        except Error as err:
             if if_not_exists:
-                transformer.id = _id_from_identical_conflict(e)
+                transformer.id = _id_from_identical_conflict(err)
                 return transformer
-            raise e
+            raise err
 
     def ListTransformers(self, limit: int = 0, starting_after: uuid.UUID = None):
         params = {}
@@ -342,9 +350,8 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/tokenizer/policies/transformation", params=params)
-
-        transformers = [Transformer.from_json(p) for p in j["data"]]
+        resp_json = self._get("/tokenizer/policies/transformation", params=params)
+        transformers = [Transformer.from_json(tf) for tf in resp_json["data"]]
         return transformers
 
     # Note: Transformers are immutable, so no Update method is provided.
@@ -358,13 +365,15 @@ class Client:
         body = {"accessor": accessor.__dict__}
 
         try:
-            j = self._post("/userstore/config/accessors", data=ucjson.dumps(body))
-            return Accessor.from_json(j)
-        except Error as e:
+            resp_json = self._post(
+                "/userstore/config/accessors", data=ucjson.dumps(body)
+            )
+            return Accessor.from_json(resp_json)
+        except Error as err:
             if if_not_exists:
-                accessor.id = _id_from_identical_conflict(e)
+                accessor.id = _id_from_identical_conflict(err)
                 return accessor
-            raise e
+            raise err
 
     def DeleteAccessor(self, id: uuid.UUID) -> str:
         return self._delete(f"/userstore/config/accessors/{id}")
@@ -382,19 +391,19 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/userstore/config/accessors", params=params)
+        resp_json = self._get("/userstore/config/accessors", params=params)
 
-        accessors = [Accessor.from_json(a) for a in j["data"]]
+        accessors = [Accessor.from_json(acs) for acs in resp_json["data"]]
         return accessors
 
     def UpdateAccessor(self, accessor: Accessor) -> Accessor:
         body = {"accessor": accessor.__dict__}
 
-        j = self._put(
+        resp_json = self._put(
             f"/userstore/config/accessors/{accessor.id}",
             data=ucjson.dumps(body),
         )
-        return Accessor.from_json(j)
+        return Accessor.from_json(resp_json)
 
     def ExecuteAccessor(
         self, accessor_id: uuid.UUID, context: dict, selector_values: list
@@ -704,24 +713,23 @@ class Client:
         )
         return j.get("has_attribute")
 
+    def DownloadUserstoreSDK(self) -> str:
+        return self._download("/userstore/download/codegensdk.py")
+
     # Access token helpers
 
     def _get_access_token(self) -> str:
         # Encode the client ID and client secret
-        authorization = base64.b64encode(
-            bytes(f"{self.client_id}:{self._client_secret}", "ISO-8859-1")
-        ).decode("ascii")
-
         headers = {
-            "Authorization": f"Basic {authorization}",
+            "Authorization": f"Basic {self._authorization}",
             "Content-Type": "application/x-www-form-urlencoded",
         }
         body = {"grant_type": "client_credentials"}
 
         # Note that we use requests directly here (instead of _post) because we don't
         # want to refresh the access token as we are trying to get it. :)
-        r = requests.post(
-            self.url + "/oidc/token",
+        r = self._client.post(
+            "/oidc/token",
             headers=headers,
             data=body,
             **self._request_kwargs,
@@ -754,62 +762,66 @@ class Client:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
-        r = requests.get(self.url + url, headers=self._get_headers(), **args)
-        j = ucjson.loads(r.text)
+        resp = self._client.get(url, headers=self._get_headers(), **args)
+        resp_json = ucjson.loads(resp.text)
 
-        if r.status_code >= 400:
-            e = Error.from_json(j)
-            e.code = r.status_code
-            raise e
-
-        return j
+        if resp.status_code >= 400:
+            err = Error.from_json(resp_json)
+            err.code = resp.status_code
+            raise err
+        return resp_json
 
     def _post(self, url, **kwargs) -> dict:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
-        r = requests.post(self.url + url, headers=self._get_headers(), **args)
-        j = ucjson.loads(r.text)
+        resp = self._client.post(url, headers=self._get_headers(), **args)
+        resp_json = ucjson.loads(resp.text)
 
-        if r.status_code >= 400:
-            e = Error.from_json(j)
-            e.code = r.status_code
-            raise e
-
-        return j
+        if resp.status_code >= 400:
+            err = Error.from_json(resp_json)
+            err.code = resp.status_code
+            raise err
+        return resp_json
 
     def _put(self, url, **kwargs) -> dict:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
-        r = requests.put(self.url + url, headers=self._get_headers(), **args)
-        j = ucjson.loads(r.text)
+        resp = self._client.put(url, headers=self._get_headers(), **args)
+        resp_json = ucjson.loads(resp.text)
 
-        if r.status_code >= 400:
-            e = Error.from_json(j)
-            e.code = r.status_code
-            raise e
-
-        return j
+        if resp.status_code >= 400:
+            err = Error.from_json(resp_json)
+            err.code = resp.status_code
+            raise err
+        return resp_json
 
     def _delete(self, url, **kwargs) -> bool:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
-        r = requests.delete(self.url + url, headers=self._get_headers(), **args)
+        resp = self._client.delete(url, headers=self._get_headers(), **args)
 
-        if r.status_code >= 400:
-            j = ucjson.loads(r.text)
-            e = Error.from_json(j)
-            e.code = r.status_code
-            raise e
+        if resp.status_code >= 400:
+            resp_json = ucjson.loads(resp.text)
+            err = Error.from_json(resp_json)
+            err.code = resp.status_code
+            raise err
 
-        return r.status_code == 204
+        return resp.status_code == 204
+
+    def _download(self, url, **kwargs) -> str:
+        self._refresh_access_token_if_needed()
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        resp = self._client.get(url, headers=self._get_headers(), **args)
+        return resp.text
 
 
-def _id_from_identical_conflict(e):
-    if e.code == 409:
-        er = APIErrorResponse.from_json(e.error)
-        if er.identical:
-            return er.id
-    raise e
+def _id_from_identical_conflict(err):
+    if err.code == 409:
+        api_error = APIErrorResponse.from_json(err.error)
+        if api_error.identical:
+            return api_error.id
+    raise err
