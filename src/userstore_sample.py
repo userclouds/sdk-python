@@ -1,3 +1,4 @@
+import uuid
 from usercloudssdk.client import Client
 from usercloudssdk.constants import (
     COLUMN_INDEX_TYPE_INDEXED,
@@ -22,6 +23,7 @@ from usercloudssdk.models import (
     ResourceID,
     RetentionDuration,
     Transformer,
+    UpdateColumnRetentionDurationRequest,
     UpdateColumnRetentionDurationsRequest,
     UserSelectorConfig,
 )
@@ -124,16 +126,17 @@ def setup(c: Client):
         if_not_exists=True,
     )
 
-    # retain phone numbers for security for 1 year and for support for 3 months after deletion
+    # configure retention durations for soft-deleted data
 
-    retention_durations_update_request = UpdateColumnRetentionDurationsRequest(
+    # retrieve phone_number soft-deleted retention durations
+    phone_number_rds = c.GetSoftDeletedRetentionDurationsOnColumn(
+        phone_number.id,
+    )
+    print(f"phone_number retention durations pre-configuration: {phone_number_rds.to_json()}\n")
+
+    # retain soft-deleted phone_number values with a support purpose for 3 months
+    column_rd_update = UpdateColumnRetentionDurationsRequest(
         [
-            ColumnRetentionDuration(
-                duration_type="softdeleted",
-                duration=RetentionDuration(unit="year", duration=1),
-                column_id=phone_number.id,
-                purpose_id=security.id,
-            ),
             ColumnRetentionDuration(
                 duration_type="softdeleted",
                 duration=RetentionDuration(unit="month", duration=3),
@@ -142,9 +145,40 @@ def setup(c: Client):
             ),
         ],
     )
-    retention_durations = c.UpdateSoftDeletedRetentionDurationsOnColumn(
+    created_rds = c.UpdateSoftDeletedRetentionDurationsOnColumn(
         phone_number.id,
-        retention_durations_update_request).retention_durations
+        column_rd_update,
+    ).retention_durations
+
+    # retain all soft-deleted values for any column or purpose for 1 week by default
+    tenant_rd_update = UpdateColumnRetentionDurationRequest(
+        ColumnRetentionDuration(
+            duration_type="softdeleted",
+            duration=RetentionDuration(unit="week", duration=1),
+        ),
+    )
+    created_rds.append(c.CreateSoftDeletedRetentionDurationOnTenant(
+        tenant_rd_update,
+    ).retention_duration)
+
+    # retain soft-deleted values for any column with a security purpose for 1 year by default
+    purpose_rd_update = UpdateColumnRetentionDurationRequest(
+        ColumnRetentionDuration(
+            duration_type="softdeleted",
+            duration=RetentionDuration(unit="year", duration=1),
+            purpose_id=security.id,
+        ),
+    )
+    created_rds.append(c.CreateSoftDeletedRetentionDurationOnPurpose(
+        security.id,
+        purpose_rd_update,
+    ).retention_duration)
+
+    # retrieve phone_number soft-deleted retention durations after configuration
+    phone_number_rds = c.GetSoftDeletedRetentionDurationsOnColumn(
+        phone_number.id,
+    )
+    print(f"phone_number retention durations post-configuration: {phone_number_rds.to_json()}\n")
 
     # Create an access policy that allows access to the data in the columns for security
     # and support purposes
@@ -338,7 +372,7 @@ function transform(data, params) {
     mutator = c.GetMutator(mutator.id)
     c.ListMutators()
 
-    return acc_support, acc_security, acc_marketing, mutator, retention_durations
+    return acc_support, acc_security, acc_marketing, mutator, created_rds
 
 
 def example(
@@ -427,7 +461,7 @@ def cleanup(
     acc_security: Accessor,
     acc_marketing: Accessor,
     mutator: Mutator,
-    retention_durations: list[ColumnRetentionDuration],
+    created_rds: list[ColumnRetentionDuration],
 ):
     # delete the accessors and mutators
     c.DeleteAccessor(acc_support.id)
@@ -435,10 +469,15 @@ def cleanup(
     c.DeleteAccessor(acc_marketing.id)
     c.DeleteMutator(mutator.id)
 
-    # delete the retention durations
-    for rd in retention_durations:
-        crd = ColumnRetentionDuration.from_json(rd)
-        c.DeleteSoftDeletedRetentionDurationOnColumn(crd.column_id, crd.id)
+    # delete the created retention durations
+    for rd in created_rds:
+        if rd.column_id == uuid.UUID(int=0):
+            if rd.purpose_id == uuid.UUID(int=0):
+                c.DeleteSoftDeletedRetentionDurationOnTenant(rd.id)
+            else:
+                c.DeleteSoftDeletedRetentionDurationOnPurpose(rd.purpose_id, rd.id)
+        else:
+            c.DeleteSoftDeletedRetentionDurationOnColumn(rd.column_id, rd.id)
 
 
 if __name__ == "__main__":
@@ -446,9 +485,9 @@ if __name__ == "__main__":
 
     # set up the userstore with the right columns, policies, accessors, mutators,
     # and retention durations
-    acc_support, acc_security, acc_marketing, mutator, retention_durations = setup(c)
+    acc_support, acc_security, acc_marketing, mutator, created_rds = setup(c)
 
     # run the example
     example(c, acc_support, acc_security, acc_marketing, mutator)
 
-    cleanup(c, acc_support, acc_security, acc_marketing, mutator, retention_durations)
+    cleanup(c, acc_support, acc_security, acc_marketing, mutator, created_rds)
