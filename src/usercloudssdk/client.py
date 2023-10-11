@@ -145,7 +145,7 @@ class Client:
                 return column
             raise err
 
-    def DeleteColumn(self, id: uuid.UUID) -> str:
+    def DeleteColumn(self, id: uuid.UUID) -> bool:
         return self._delete(f"/userstore/config/columns/{id}")
 
     def GetColumn(self, id: uuid.UUID) -> Column:
@@ -155,7 +155,7 @@ class Client:
     def ListColumns(
         self, limit: int = 0, starting_after: uuid.UUID = None
     ) -> list[Column]:
-        params = {}
+        params: dict[str, int | str] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -189,12 +189,12 @@ class Client:
                 return purpose
             raise err
 
-    def DeletePurpose(self, id: uuid.UUID) -> str:
+    def DeletePurpose(self, id: uuid.UUID) -> bool:
         return self._delete(f"/userstore/config/purposes/{id}")
 
     def GetPurpose(self, id: uuid.UUID) -> Purpose:
-        j = self._get(f"/userstore/config/purposes/{id}")
-        return Purpose.from_json(j)
+        json_resp = self._get(f"/userstore/config/purposes/{id}")
+        return Purpose.from_json(json_resp)
 
     def ListPurposes(
         self, limit: int = 0, starting_after: uuid.UUID = None
@@ -240,7 +240,7 @@ class Client:
     def ListAccessPolicyTemplates(
         self, limit: int = 0, starting_after: uuid.UUID = None
     ):
-        params = {}
+        params: dict[str, int | str] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -771,7 +771,7 @@ class Client:
             raise err
         return resp_json
 
-    def _post(self, url, **kwargs) -> dict:
+    def _post(self, url, **kwargs) -> dict | list:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
@@ -784,7 +784,7 @@ class Client:
             raise err
         return resp_json
 
-    def _put(self, url, **kwargs) -> dict:
+    def _put(self, url, **kwargs) -> dict | list:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
