@@ -1,6 +1,6 @@
 import uuid
 
-from usercloudssdk.client import Client
+from usercloudssdk.client import Client, Error
 from usercloudssdk.constants import (
     COLUMN_INDEX_TYPE_INDEXED,
     COLUMN_INDEX_TYPE_NONE,
@@ -129,11 +129,13 @@ def setup(c: Client):
 
     # configure retention durations for soft-deleted data
 
-    # retrieve phone_number soft-deleted retention durations
+    # retrieve and delete any pre-existing phone_number soft-deleted retention durations
     phone_number_rds = c.GetSoftDeletedRetentionDurationsOnColumn(
         phone_number.id,
     )
-    print(f"phone_number retention durations pre-configuration: {phone_number_rds}\n")
+    for rd in phone_number_rds.retention_durations:
+        if rd.id != uuid.UUID(int=0):
+            c.DeleteSoftDeletedRetentionDurationOnColumn(phone_number.id, rd.id)
 
     # retain soft-deleted phone_number values with a support purpose for 3 months
     column_rd_update = UpdateColumnRetentionDurationsRequest(
@@ -151,6 +153,15 @@ def setup(c: Client):
         column_rd_update,
     ).retention_durations
 
+    # retrieve and delete pre-existing default soft-deleted retention duration on tenant
+    try:
+        default_duration = c.GetDefaultSoftDeletedRetentionDurationOnTenant()
+        c.DeleteSoftDeletedRetentionDurationOnTenant(
+            default_duration.retention_duration.id
+        )
+    except Error:
+        pass
+
     # retain all soft-deleted values for any column or purpose for 1 week by default
     tenant_rd_update = UpdateColumnRetentionDurationRequest(
         ColumnRetentionDuration(
@@ -163,6 +174,18 @@ def setup(c: Client):
             tenant_rd_update,
         ).retention_duration
     )
+
+    # retrieve and delete any pre-existing security purpose soft-deleted retention duration
+    try:
+        purpose_rd = c.GetDefaultSoftDeletedRetentionDurationOnPurpose(
+            security.id,
+        )
+        if purpose_rd.retention_duration.id != uuid.UUID(int=0):
+            c.DeleteSoftDeletedRetentionDurationOnPurpose(
+                security.id, purpose_rd.retention_duration.id
+            )
+    except Error:
+        pass
 
     # retain soft-deleted values for any column with a security purpose for 1 year by default
     purpose_rd_update = UpdateColumnRetentionDurationRequest(
@@ -262,7 +285,7 @@ function transform(data, params) {
     acc_support = Accessor(
         None,
         "PIIAccessor-SupportTeam",
-        "New Accessor",
+        "Accessor for support team",
         [
             ColumnOutputConfig(
                 column=ResourceID(name="phone_number"),
@@ -286,6 +309,10 @@ function transform(data, params) {
         [ResourceID(name="support")],
     )
     acc_support = c.CreateAccessor(acc_support, if_not_exists=True)
+
+    # illustrate updating accessor, getting, and listing accessors
+    acc_support.description = "New Name"
+    acc_support = c.UpdateAccessor(acc_support)
     acc_support.description = "Accessor for support team"
     acc_support = c.UpdateAccessor(acc_support)
     acc_support = c.GetAccessor(acc_support.id)
@@ -357,7 +384,7 @@ function transform(data, params) {
     mutator = Mutator(
         None,
         "PhoneAndAddressMutator",
-        "New mutator",
+        "Mutator for updating phone number and home address",
         [
             ColumnInputConfig(
                 column=ResourceID(name="phone_number"),
@@ -372,6 +399,9 @@ function transform(data, params) {
         UserSelectorConfig("{id} = ?"),
     )
     mutator = c.CreateMutator(mutator, if_not_exists=True)
+    # illustrate updating, getting, and listing mutators
+    mutator.description = "New description"
+    mutator = c.UpdateMutator(mutator)
     mutator.description = "Mutator for updating phone number and home address"
     mutator = c.UpdateMutator(mutator)
     mutator = c.GetMutator(mutator.id)
