@@ -494,6 +494,204 @@ class Transformer:
         )
 
 
+class RetentionDuration:
+    unit: str
+    duration: int
+
+    def __init__(self, unit, duration):
+        self.unit = unit
+        self.duration = duration
+
+    def __repr__(self):
+        return f"RetentionDuration(unit: '{self.unit}', duration: '{self.duration}')"
+
+    def to_json(self):
+        return ucjson.dumps(
+            {
+                "unit": self.unit,
+                "duration": self.duration,
+            }
+        )
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(
+            data["unit"],
+            data["duration"],
+        )
+
+
+class ColumnRetentionDuration:
+    duration_type: str
+    id: uuid.UUID
+    column_id: uuid.UUID
+    purpose_id: uuid.UUID
+    duration: RetentionDuration
+    use_default: bool
+    default_duration: RetentionDuration
+    purpose_name: str
+    version: int
+
+    def __init__(
+        self,
+        duration_type,
+        duration,
+        id=uuid.UUID(int=0),
+        column_id=uuid.UUID(int=0),
+        purpose_id=uuid.UUID(int=0),
+        use_default=False,
+        default_duration=None,
+        purpose_name=None,
+        version=0,
+    ):
+        self.duration_type = duration_type
+        self.id = id
+        self.column_id = column_id
+        self.purpose_id = purpose_id
+        self.duration = duration
+        self.use_default = use_default
+        self.default_duration = default_duration
+        self.purpose_name = purpose_name
+        self.version = version
+
+    def __repr__(self):
+        return f"ColumnRetentionDuration(duration_type: '{self.duration_type}', duration: '{self.duration}', id: '{self.id}', column_id: '{self.column_id}', purpose_id: '{self.purpose_id}', use_default: '{self.use_default}', default_duration: '{self.default_duration}', purpose_name: '{self.purpose_name}', version: '{self.version}')"
+
+    def to_json(self):
+        default_duration = (
+            None if self.default_duration is None else self.default_duration.to_json()
+        )
+        return ucjson.dumps(
+            {
+                "duration_type": self.duration_type,
+                "id": str(self.id),
+                "column_id": str(self.column_id),
+                "purpose_id": str(self.purpose_id),
+                "duration": self.duration.to_json(),
+                "use_default": self.use_default,
+                "default_duration": default_duration,
+                "purpose_name": self.purpose_name,
+                "version": self.version,
+            }
+        )
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(
+            data["duration_type"],
+            RetentionDuration.from_json(data["duration"]),
+            uuid.UUID(data["id"]),
+            uuid.UUID(data["column_id"]),
+            uuid.UUID(data["purpose_id"]),
+            data["use_default"],
+            RetentionDuration.from_json(data["default_duration"]),
+            data["purpose_name"],
+            data["version"],
+        )
+
+
+class UpdateColumnRetentionDurationRequest:
+    retention_duration: ColumnRetentionDuration
+
+    def __init__(
+        self,
+        retention_duration,
+    ):
+        self.retention_duration = retention_duration
+
+    def __repr__(self):
+        return f"UpdateColumnRetentionDurationRequest(retention_duration: '{self.retention_duration}')"
+
+    def to_json(self):
+        return ucjson.dumps(
+            {
+                "retention_duration": self.retention_duration,
+            }
+        )
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(ColumnRetentionDuration.from_json(data["retention_duration"]))
+
+
+class UpdateColumnRetentionDurationsRequest:
+    retention_durations: list[ColumnRetentionDuration]
+
+    def __init__(
+        self,
+        retention_durations,
+    ):
+        self.retention_durations = retention_durations
+
+    def __repr__(self):
+        return f"UpdateColumnRetentionDurationsRequest(retention_durations: '{self.retention_durations}')"
+
+    def to_json(self):
+        return ucjson.dumps(
+            {
+                "retention_durations": self.retention_durations,
+            }
+        )
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(
+            [
+                ColumnRetentionDuration.from_json(rd)
+                for rd in data["retention_durations"]
+            ]
+        )
+
+
+class ColumnRetentionDurationResponse:
+    max_duration: RetentionDuration
+    retention_duration: ColumnRetentionDuration
+
+    def __init__(
+        self,
+        max_duration,
+        retention_duration,
+    ):
+        self.max_duration = max_duration
+        self.retention_duration = retention_duration
+
+    def __repr__(self):
+        return f"ColumnRetentionDurationResponse(max_duration: '{self.max_duration}', retention_duration: '{self.retention_duration}')"
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(
+            RetentionDuration.from_json(data["max_duration"]),
+            ColumnRetentionDuration.from_json(data["retention_duration"]),
+        )
+
+
+class ColumnRetentionDurationsResponse:
+    max_duration: RetentionDuration
+    retention_durations: list[ColumnRetentionDuration]
+
+    def __init__(
+        self,
+        max_duration,
+        retention_durations,
+    ):
+        self.max_duration = max_duration
+        self.retention_durations = retention_durations
+
+    def __repr__(self):
+        return f"ColumnRetentionDurationsResponse(max_duration: '{self.max_duration}', retention_durations: '{self.retention_durations}')"
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(
+            RetentionDuration.from_json(data["max_duration"]),
+            [
+                ColumnRetentionDuration.from_json(rd)
+                for rd in data["retention_durations"]
+            ],
+        )
+
+
 class Validator:
     id: uuid.UUID
     name: str
