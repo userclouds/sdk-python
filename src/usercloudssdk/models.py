@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import uuid
 from dataclasses import dataclass
@@ -11,11 +13,11 @@ class User:
     id: uuid.UUID
     profile: dict
 
-    def __init__(self, id, profile):
+    def __init__(self, id: uuid.UUID, profile: dict) -> None:
         self.id = id
         self.profile = profile
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -24,7 +26,7 @@ class User:
         )
 
     @staticmethod
-    def from_json(j):
+    def from_json(j) -> User:
         return User(
             uuid.UUID(j["id"]),
             j["profile"],
@@ -43,7 +45,7 @@ class UserResponse:
         self.profile = profile
         self.organization_id = organization_id
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -69,7 +71,7 @@ class UserSelectorConfig:
     def __init__(self, where_clause):
         self.where_clause = where_clause
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps({"where_clause": self.where_clause})
 
     @staticmethod
@@ -116,7 +118,7 @@ class Column:
         self.default_value = default_value
         self.index_type = index_type
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -150,7 +152,7 @@ class Purpose:
         self.name = name
         self.description = description
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {"id": str(self.id), "name": self.name, "description": self.description}
         )
@@ -211,7 +213,7 @@ class Accessor:
         self.token_access_policy = token_access_policy
         self.version = version
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -284,7 +286,7 @@ class Mutator:
         self.selector_config = selector_config
         self.version = version
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -334,7 +336,7 @@ class AccessPolicyTemplate:
     def __repr__(self):
         return f"AccessPolicyTemplate({self.id})"
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -372,7 +374,7 @@ class AccessPolicyComponent:
         else:
             return "AccessPolicyComponent()"
 
-    def to_json(self):
+    def to_json(self) -> str:
         obj = {}
         if self.policy:
             obj["policy"] = self.policy.to_json()
@@ -419,7 +421,7 @@ class AccessPolicy:
     def __repr__(self):
         return f"AccessPolicy({self.id})"
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -470,7 +472,7 @@ class Transformer:
     def __repr__(self):
         return f"Transformer({self.id})"
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -707,7 +709,7 @@ class Validator:
     def __repr__(self):
         return f"Validator({self.id})"
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -742,7 +744,7 @@ class InspectTokenResponse:
         self.transformer = transformer
         self.access_policy = access_policy
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "id": str(self.id),
@@ -777,7 +779,7 @@ class APIErrorResponse:
         self.id = id
         self.identical = identical
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {"error": self.error, "id": self.id, "identical": self.identical}
         )
@@ -789,16 +791,16 @@ class APIErrorResponse:
 
 @dataclass
 class Address:
-    country: str = None
-    name: str = None
-    organization: str = None
-    street_address_line_1: str = None
-    street_address_line_2: str = None
-    dependent_locality: str = None
-    locality: str = None
-    administrative_area: str = None
-    post_code: str = None
-    sorting_code: str = None
+    country: str | None = None
+    name: str | None = None
+    organization: str | None = None
+    street_address_line_1: str | None = None
+    street_address_line_2: str | None = None
+    dependent_locality: str | None = None
+    locality: str | None = None
+    administrative_area: str | None = None
+    post_code: str | None = None
+    sorting_code: str | None = None
 
     @classmethod
     def from_json(cls, j):
@@ -809,11 +811,11 @@ class Address:
 class Object:
     id: uuid.UUID
     type_id: uuid.UUID
-    alias: str = None
-    created: datetime.datetime = None
-    updated: datetime.datetime = None
-    deleted: datetime.datetime = None
-    organization_id: uuid.UUID = None
+    alias: str | None = None
+    created: datetime.datetime | None = None
+    updated: datetime.datetime | None = None
+    deleted: datetime.datetime | None = None
+    organization_id: uuid.UUID | None = None
 
     @classmethod
     def from_json(cls, j):
@@ -828,9 +830,9 @@ class Edge:
     edge_type_id: uuid.UUID
     source_object_id: uuid.UUID
     target_object_id: uuid.UUID
-    created: datetime.datetime = None
-    updated: datetime.datetime = None
-    deleted: datetime.datetime = None
+    created: datetime.datetime | None = None
+    updated: datetime.datetime | None = None
+    deleted: datetime.datetime | None = None
 
     @classmethod
     def from_json(cls, j):
@@ -845,10 +847,10 @@ class Edge:
 class ObjectType:
     id: uuid.UUID
     type_name: str
-    created: datetime.datetime = None
-    updated: datetime.datetime = None
-    deleted: datetime.datetime = None
-    organization_id: uuid.UUID = None
+    created: datetime.datetime | None = None
+    updated: datetime.datetime | None = None
+    deleted: datetime.datetime | None = None
+    organization_id: uuid.UUID | None = None
 
     @classmethod
     def from_json(cls, j):
@@ -874,10 +876,10 @@ class EdgeType:
     source_object_type_id: uuid.UUID
     target_object_type_id: uuid.UUID
     attributes: list[Attribute]
-    created: datetime.datetime = None
-    updated: datetime.datetime = None
-    deleted: datetime.datetime = None
-    organization_id: uuid.UUID = None
+    created: datetime.datetime | None = None
+    updated: datetime.datetime | None = None
+    deleted: datetime.datetime | None = None
+    organization_id: uuid.UUID | None = None
 
     @classmethod
     def from_json(cls, j):
@@ -892,9 +894,9 @@ class Organization:
     id: uuid.UUID
     name: str
     region: str
-    created: datetime.datetime = None
-    updated: datetime.datetime = None
-    deleted: datetime.datetime = None
+    created: datetime.datetime | None = None
+    updated: datetime.datetime | None = None
+    deleted: datetime.datetime | None = None
 
     @classmethod
     def from_json(cls, j):

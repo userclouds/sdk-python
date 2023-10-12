@@ -110,9 +110,12 @@ class Client:
         return resp_json.get("id")
 
     def ListUsers(
-        self, limit: int = 0, starting_after: uuid.UUID = None, email: str = None
+        self,
+        limit: int = 0,
+        starting_after: uuid.UUID | None = None,
+        email: str | None = None,
     ) -> list[UserResponse]:
-        params = {}
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -158,7 +161,7 @@ class Client:
         return Column.from_json(resp_json)
 
     def ListColumns(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Column]:
         params: dict[str, int | str] = {}
         if limit > 0:
@@ -202,9 +205,9 @@ class Client:
         return Purpose.from_json(json_resp)
 
     def ListPurposes(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Purpose]:
-        params = {}
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -405,7 +408,7 @@ class Client:
             raise err
 
     def ListAccessPolicyTemplates(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ):
         params: dict[str, int | str] = {}
         if limit > 0:
@@ -459,8 +462,10 @@ class Client:
                 return access_policy
             raise err
 
-    def ListAccessPolicies(self, limit: int = 0, starting_after: uuid.UUID = None):
-        params = {}
+    def ListAccessPolicies(
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
+    ):
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -510,8 +515,8 @@ class Client:
                 return transformer
             raise err
 
-    def ListTransformers(self, limit: int = 0, starting_after: uuid.UUID = None):
-        params = {}
+    def ListTransformers(self, limit: int = 0, starting_after: uuid.UUID | None = None):
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -542,7 +547,7 @@ class Client:
                 return accessor
             raise err
 
-    def DeleteAccessor(self, id: uuid.UUID) -> str:
+    def DeleteAccessor(self, id: uuid.UUID) -> bool:
         return self._delete(f"/userstore/config/accessors/{id}")
 
     def GetAccessor(self, id: uuid.UUID) -> Accessor:
@@ -550,9 +555,9 @@ class Client:
         return Accessor.from_json(j)
 
     def ListAccessors(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Accessor]:
-        params = {}
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -597,7 +602,7 @@ class Client:
                 return mutator
             raise e
 
-    def DeleteMutator(self, id: uuid.UUID) -> str:
+    def DeleteMutator(self, id: uuid.UUID) -> bool:
         return self._delete(f"/userstore/config/mutators/{id}")
 
     def GetMutator(self, id: uuid.UUID) -> Mutator:
@@ -605,9 +610,9 @@ class Client:
         return Mutator.from_json(j)
 
     def ListMutators(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Mutator]:
-        params = {}
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -658,8 +663,8 @@ class Client:
             "access_policy_rid": access_policy_rid.__dict__,
         }
 
-        j = self._post("/tokenizer/tokens", data=ucjson.dumps(body))
-        return j["data"]
+        json_resp = self._post("/tokenizer/tokens", data=ucjson.dumps(body))
+        return json_resp["data"]
 
     def LookupOrCreateTokens(
         self,
@@ -713,9 +718,9 @@ class Client:
     ### AuthZ Operations
 
     def ListObjects(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Object]:
-        params = {}
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -745,8 +750,10 @@ class Client:
     def DeleteObject(self, id: uuid.UUID):
         return self._delete(f"/authz/objects/{id}")
 
-    def ListEdges(self, limit: int = 0, starting_after: uuid.UUID = None) -> list[Edge]:
-        params = {}
+    def ListEdges(
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
+    ) -> list[Edge]:
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -777,9 +784,9 @@ class Client:
         return self._delete(f"/authz/edges/{id}")
 
     def ListObjectTypes(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[ObjectType]:
-        params = {}
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -812,9 +819,9 @@ class Client:
         return self._delete(f"/authz/objecttypes/{id}")
 
     def ListEdgeTypes(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[EdgeType]:
-        params = {}
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -841,13 +848,13 @@ class Client:
         j = self._get(f"/authz/edgetypes/{id}")
         return EdgeType.from_json(j)
 
-    def DeleteEdgeType(self, id: uuid.UUID):
+    def DeleteEdgeType(self, id: uuid.UUID) -> bool:
         return self._delete(f"/authz/edgetypes/{id}")
 
     def ListOrganizations(
-        self, limit: int = 0, starting_after: uuid.UUID = None
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Organization]:
-        params = {}
+        params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
@@ -860,14 +867,14 @@ class Client:
 
     def CreateOrganization(self, organization: Organization) -> Organization:
         body = organization.__dict__
-        j = self._post("/authz/organizations", data=ucjson.dumps(body))
-        return Organization.from_json(j)
+        json_data = self._post("/authz/organizations", data=ucjson.dumps(body))
+        return Organization.from_json(json_data)
 
     def GetOrganization(self, id: uuid.UUID) -> Organization:
-        j = self._get(f"/authz/organizations/{id}")
-        return Organization.from_json(j)
+        json_data = self._get(f"/authz/organizations/{id}")
+        return Organization.from_json(json_data)
 
-    def DeleteOrganization(self, id: uuid.UUID):
+    def DeleteOrganization(self, id: uuid.UUID) -> bool:
         return self._delete(f"/authz/organizations/{id}")
 
     def CheckAttribute(
@@ -896,14 +903,14 @@ class Client:
 
         # Note that we use requests directly here (instead of _post) because we don't
         # want to refresh the access token as we are trying to get it. :)
-        r = self._client.post(
+        resp = self._client.post(
             "/oidc/token",
             headers=headers,
             data=body,
             **self._request_kwargs,
         )
-        j = ucjson.loads(r.text)
-        return j.get("access_token")
+        json_data = ucjson.loads(resp.text)
+        return json_data.get("access_token")
 
     def _refresh_access_token_if_needed(self):
         if self._access_token is None:

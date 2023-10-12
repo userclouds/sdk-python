@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import uuid
 
@@ -11,9 +13,9 @@ def serializer(obj):
     return obj.__dict__
 
 
-def loads(s):
-    return json.loads(s)
+def loads(data: str) -> dict:
+    return json.loads(data)
 
 
-def dumps(s):
-    return json.dumps(s, default=serializer, ensure_ascii=False)
+def dumps(data: dict) -> str:
+    return json.dumps(data, default=serializer, ensure_ascii=False)
