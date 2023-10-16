@@ -2,6 +2,8 @@
 
 ## 1.0.15 -- UNPUBLISHED ##
 
+* Fix future compatibility (make sure the SDK doesn't break if server sends new fields)
+
 ## 1.0.14 -- 12-10-2023 ##
 
 * Added a changelog
