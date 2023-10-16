@@ -25,11 +25,11 @@ class User:
             }
         )
 
-    @staticmethod
-    def from_json(j) -> User:
-        return User(
-            uuid.UUID(j["id"]),
-            j["profile"],
+    @classmethod
+    def from_json(cls, json_data) -> User:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            profile=json_data["profile"],
         )
 
 
@@ -74,9 +74,9 @@ class UserSelectorConfig:
     def to_json(self) -> str:
         return ucjson.dumps({"where_clause": self.where_clause})
 
-    @staticmethod
-    def from_json(j):
-        return UserSelectorConfig(j["where_clause"])
+    @classmethod
+    def from_json(cls, json_data) -> UserSelectorConfig:
+        return cls(where_clause=json_data["where_clause"])
 
 
 class ResourceID:
@@ -97,9 +97,9 @@ class ResourceID:
     def isValid(self):
         return hasattr(self, "id") or hasattr(self, "name")
 
-    @staticmethod
-    def from_json(j):
-        return ResourceID(j["id"], j["name"])
+    @classmethod
+    def from_json(cls, json_data) -> ResourceID:
+        return cls(id=json_data["id"], name=json_data["name"])
 
 
 class Column:
@@ -130,15 +130,15 @@ class Column:
             }
         )
 
-    @staticmethod
-    def from_json(j):
-        return Column(
-            uuid.UUID(j["id"]),
-            j["name"],
-            j["type"],
-            j["is_array"],
-            j["default_value"],
-            j["index_type"],
+    @classmethod
+    def from_json(cls, json_data) -> Column:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            type=json_data["type"],
+            is_array=json_data["is_array"],
+            default_value=json_data["default_value"],
+            index_type=json_data["index_type"],
         )
 
 
@@ -484,15 +484,15 @@ class Transformer:
             },
         )
 
-    @staticmethod
-    def from_json(j):
-        return Transformer(
-            uuid.UUID(j["id"]),
-            j["name"],
-            j["input_type"],
-            j["transform_type"],
-            j["function"],
-            j["parameters"],
+    @classmethod
+    def from_json(cls, json_data) -> Transformer:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            input_type=json_data["input_type"],
+            transform_type=json_data["transform_type"],
+            function=json_data["function"],
+            parameters=json_data["parameters"],
         )
 
 
@@ -719,9 +719,14 @@ class Validator:
             },
         )
 
-    @staticmethod
-    def from_json(j):
-        return Validator(uuid.UUID(j["id"]), j["name"], j["function"], j["parameters"])
+    @classmethod
+    def from_json(cls, json_data) -> Validator:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            function=json_data["function"],
+            parameters=json_data["parameters"],
+        )
 
 
 class InspectTokenResponse:
@@ -757,15 +762,15 @@ class InspectTokenResponse:
             ensure_ascii=False,
         )
 
-    @staticmethod
-    def from_json(j):
-        return InspectTokenResponse(
-            uuid.UUID(j["id"]),
-            j["token"],
-            iso8601.parse_date(j["created"]),
-            iso8601.parse_date(j["updated"]),
-            Transformer.from_json(j["transformer"]),
-            AccessPolicy.from_json(j["access_policy"]),
+    @classmethod
+    def from_json(cls, json_data) -> InspectTokenResponse:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            token=json_data["token"],
+            created=iso8601.parse_date(json_data["created"]),
+            updated=iso8601.parse_date(json_data["updated"]),
+            transformer=Transformer.from_json(json_data["transformer"]),
+            access_policy=AccessPolicy.from_json(json_data["access_policy"]),
         )
 
 
@@ -784,9 +789,13 @@ class APIErrorResponse:
             {"error": self.error, "id": self.id, "identical": self.identical}
         )
 
-    @staticmethod
-    def from_json(j):
-        return APIErrorResponse(j["error"], j["id"], j["identical"])
+    @classmethod
+    def from_json(cls, json_data) -> APIErrorResponse:
+        return cls(
+            error=json_data["error"],
+            id=uuid.UUID(json_data["id"]),
+            identical=json_data["identical"],
+        )
 
 
 @dataclass
@@ -803,8 +812,19 @@ class Address:
     sorting_code: str | None = None
 
     @classmethod
-    def from_json(cls, j):
-        return cls(**j)
+    def from_json(cls, json_data) -> Address:
+        return cls(
+            country=json_data["country"],
+            name=json_data["name"],
+            organization=json_data["organization"],
+            street_address_line_1=json_data["street_address_line_1"],
+            street_address_line_2=json_data["street_address_line_2"],
+            dependent_locality=json_data["dependent_locality"],
+            locality=json_data["locality"],
+            administrative_area=json_data["administrative_area"],
+            post_code=json_data["post_code"],
+            sorting_code=json_data["sorting_code"],
+        )
 
 
 @dataclass
@@ -818,10 +838,16 @@ class Object:
     organization_id: uuid.UUID | None = None
 
     @classmethod
-    def from_json(cls, j):
-        j["id"] = uuid.UUID(j["id"])
-        j["type_id"] = uuid.UUID(j["type_id"])
-        return cls(**j)
+    def from_json(cls, json_data) -> Object:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            type_id=uuid.UUID(json_data["type_id"]),
+            alias=json_data.get("alias"),
+            created=iso8601.parse_date(json_data["created"]),
+            updated=iso8601.parse_date(json_data["updated"]),
+            deleted=iso8601.parse_date(json_data["deleted"]),
+            organization_id=_maybe_get_org_id(json_data),
+        )
 
 
 @dataclass
@@ -835,12 +861,16 @@ class Edge:
     deleted: datetime.datetime | None = None
 
     @classmethod
-    def from_json(cls, j):
-        j["id"] = uuid.UUID(j["id"])
-        j["edge_type_id"] = uuid.UUID(j["edge_type_id"])
-        j["source_object_id"] = uuid.UUID(j["source_object_id"])
-        j["target_object_id"] = uuid.UUID(j["target_object_id"])
-        return cls(**j)
+    def from_json(cls, json_data) -> Edge:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            edge_type_id=uuid.UUID(json_data["edge_type_id"]),
+            source_object_id=uuid.UUID(json_data["source_object_id"]),
+            target_object_id=uuid.UUID(json_data["target_object_id"]),
+            created=iso8601.parse_date(json_data["created"]),
+            updated=iso8601.parse_date(json_data["updated"]),
+            deleted=iso8601.parse_date(json_data["deleted"]),
+        )
 
 
 @dataclass
@@ -853,8 +883,15 @@ class ObjectType:
     organization_id: uuid.UUID | None = None
 
     @classmethod
-    def from_json(cls, j):
-        return _from_json_with_id(cls, j)
+    def from_json(cls, json_data) -> ObjectType:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            type_name=json_data["type_name"],
+            created=iso8601.parse_date(json_data["created"]),
+            updated=iso8601.parse_date(json_data["updated"]),
+            deleted=iso8601.parse_date(json_data["deleted"]),
+            organization_id=_maybe_get_org_id(json_data),
+        )
 
 
 @dataclass
@@ -865,8 +902,13 @@ class Attribute:
     propagate: bool
 
     @classmethod
-    def from_json(cls, j):
-        return cls(**j)
+    def from_json(cls, json_data) -> Attribute:
+        return cls(
+            name=json_data["name"],
+            direct=json_data["direct"],
+            inherit=json_data["inherit"],
+            propagate=json_data["propagate"],
+        )
 
 
 @dataclass
@@ -882,11 +924,20 @@ class EdgeType:
     organization_id: uuid.UUID | None = None
 
     @classmethod
-    def from_json(cls, j):
-        j["id"] = uuid.UUID(j["id"])
-        j["source_object_type_id"] = uuid.UUID(j["source_object_type_id"])
-        j["target_object_type_id"] = uuid.UUID(j["target_object_type_id"])
-        return cls(**j)
+    def from_json(cls, json_data: dict) -> EdgeType:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            type_name=json_data["type_name"],
+            source_object_type_id=uuid.UUID(json_data["source_object_type_id"]),
+            target_object_type_id=uuid.UUID(json_data["target_object_type_id"]),
+            attributes=[
+                Attribute.from_json(attr) for attr in json_data["attributes"] or []
+            ],
+            created=iso8601.parse_date(json_data["created"]),
+            updated=iso8601.parse_date(json_data["updated"]),
+            deleted=iso8601.parse_date(json_data["deleted"]),
+            organization_id=_maybe_get_org_id(json_data),
+        )
 
 
 @dataclass
@@ -899,10 +950,20 @@ class Organization:
     deleted: datetime.datetime | None = None
 
     @classmethod
-    def from_json(cls, j):
-        return _from_json_with_id(cls, j)
+    def from_json(cls, json_data: dict) -> Organization:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            region=json_data["region"],
+            created=iso8601.parse_date(json_data["created"]),
+            updated=iso8601.parse_date(json_data["updated"]),
+            deleted=iso8601.parse_date(json_data["deleted"]),
+        )
 
 
-def _from_json_with_id(cls, j):
-    j["id"] = uuid.UUID(j["id"])
-    return cls(**j)
+def _maybe_get_org_id(json_data: dict) -> uuid.UUID | None:
+    return _uuid_or_none(json_data, "organization_id")
+
+
+def _uuid_or_none(json_data: dict, field: str) -> uuid.UUID | None:
+    return uuid.UUID(json_data[field]) if field in json_data else None
