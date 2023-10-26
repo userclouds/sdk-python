@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from usercloudssdk.client import Client, Error
@@ -8,6 +9,7 @@ from usercloudssdk.constants import (
     DATA_TYPE_BOOLEAN,
     DATA_TYPE_STRING,
     POLICY_TYPE_COMPOSITE_INTERSECTION,
+    TRANSFORM_TYPE_TOKENIZE_BY_VALUE,
     TRANSFORM_TYPE_TRANSFORM,
 )
 from usercloudssdk.models import (
@@ -37,7 +39,6 @@ from usercloudssdk.policies import (
 client_id = "<REPLACE ME>"
 client_secret = "<REPLACE ME>"
 url = "<REPLACE ME>"
-
 
 # This sample shows you how to create new columns in the user store and create access
 # policies governing access to the data inside those columns. It also shows you how to
@@ -156,9 +157,10 @@ def setup(c: Client):
     # retrieve and delete pre-existing default soft-deleted retention duration on tenant
     try:
         default_duration = c.GetDefaultSoftDeletedRetentionDurationOnTenant()
-        c.DeleteSoftDeletedRetentionDurationOnTenant(
-            default_duration.retention_duration.id
-        )
+        if default_duration.retention_duration.id != uuid.UUID(int=0):
+            c.DeleteSoftDeletedRetentionDurationOnTenant(
+                default_duration.retention_duration.id
+            )
     except Error:
         pass
 
@@ -251,6 +253,8 @@ function transform(data, params) {
         None,
         "PIITransformerForSupport",
         DATA_TYPE_STRING,
+        DATA_TYPE_STRING,
+        False,
         TRANSFORM_TYPE_TRANSFORM,
         phone_transformer_function,
         '{"team": "support_team"}',
@@ -263,6 +267,8 @@ function transform(data, params) {
         None,
         "PIITransformerForSecurity",
         DATA_TYPE_STRING,
+        DATA_TYPE_STRING,
+        False,
         TRANSFORM_TYPE_TRANSFORM,
         phone_transformer_function,
         '{"team": "security_team"}',
@@ -271,6 +277,43 @@ function transform(data, params) {
         security_phone_transformer, if_not_exists=True
     )
 
+    phone_tokenizing_transformer_function = r"""
+function id(len) {
+		var s = "0123456789";
+		return Array(len).join().split(',').map(function() {
+			return s.charAt(Math.floor(Math.random() * s.length));
+		}).join('');
+	}
+	function validate(str) {
+		return (str.length === 10);
+	}
+	function transform(data, params) {
+	  // Strip non numeric characters if present
+	  orig_data = data;
+	  data = data.replace(/\D/g, '');
+	  if (data.length === 11 ) {
+		data = data.substr(1, 11);
+	  }
+	  if (!validate(data)) {
+			throw new Error('Invalid US Phone Number Provided');
+	  }
+	  return '1' + id(10);
+}"""
+
+    logging_phone_transformer = Transformer(
+        None,
+        "PIITransformerForLogging",
+        DATA_TYPE_STRING,
+        DATA_TYPE_STRING,
+        True,  # Set this is to false to get a unique token every time this transformer is called vs getting same token on every call
+        TRANSFORM_TYPE_TOKENIZE_BY_VALUE,
+        phone_tokenizing_transformer_function,
+        '{"team": "security_team"}',
+    )
+
+    logging_phone_transformer = c.CreateTransformer(
+        logging_phone_transformer, if_not_exists=True
+    )
     # Accessors are configurable APIs that allow a client to retrieve data from the user
     # store. Accessors are intended to be use-case specific. They enforce data usage
     # policies and minimize outbound data from the store for their given use case.
@@ -373,9 +416,26 @@ function transform(data, params) {
         ],
         ResourceID(id=AccessPolicyOpen.id),
         UserSelectorConfig("{id} = ?"),
-        [ResourceID(name="marketing")],
+        [ResourceID(name="security")],
     )
     acc_marketing = c.CreateAccessor(acc_marketing, if_not_exists=True)
+
+    acc_logging = Accessor(
+        None,
+        "PhoneTokenAccessorForSecurityTeam",
+        "Accessor for getting phone number token for security team",
+        [
+            ColumnOutputConfig(
+                column=ResourceID(name="phone_number"),
+                transformer=ResourceID(id=logging_phone_transformer.id),
+            ),
+        ],
+        ResourceID(id=AccessPolicyOpen.id),
+        UserSelectorConfig("{id} = ?"),
+        [ResourceID(name="security")],
+        ResourceID(id=AccessPolicyOpen.id),
+    )
+    acc_logging = c.CreateAccessor(acc_logging, if_not_exists=True)
 
     # Mutators are configurable APIs that allow a client to write data to the User
     # Store. Mutators (setters) can be thought of as the complement to accessors
@@ -407,7 +467,7 @@ function transform(data, params) {
     mutator = c.GetMutator(mutator.id)
     c.ListMutators()
 
-    return acc_support, acc_security, acc_marketing, mutator, created_rds
+    return acc_support, acc_security, acc_marketing, acc_logging, mutator, created_rds
 
 
 def example(
@@ -415,6 +475,7 @@ def example(
     acc_support: Accessor,
     acc_security: Accessor,
     acc_marketing: Accessor,
+    acc_logging: Accessor,
     mutator: Mutator,
 ):
     email = "me@example.org"
@@ -487,6 +548,31 @@ Main St", "locality":"Pleasantville"}]',
     # expect [] (due to team mismatch in access policy)
     print(f"marketing context: user's details are {resolved}\n")
 
+    resolved = c.ExecuteAccessor(
+        acc_logging.id,
+        {"team": "security_team"},
+        [uid],
+    )
+    # expect to get back a token
+    token = json.loads(resolved["data"][0]).get("phone_number")
+    print(f"user's phone token (first call) {token}\n")
+
+    resolved = c.ExecuteAccessor(
+        acc_logging.id,
+        {"team": "security_team"},
+        [uid],
+    )
+
+    # expect to get back the same token so it can be used in logs as a unique identifier if desired
+    token = json.loads(resolved["data"][0]).get("phone_number")
+    print(f"user's phone token (repeat call) {token}\n")
+
+    # resolving the token to the original phone number
+    value = c.ResolveTokens(
+        [token], {"team": "security_team"}, [ResourceID(name="security")]
+    )
+    print(f"user's phone token resolved  {value}\n")
+
     c.DeleteUser(uid)
 
 
@@ -495,6 +581,7 @@ def cleanup(
     acc_support: Accessor,
     acc_security: Accessor,
     acc_marketing: Accessor,
+    acc_logging: Accessor,
     mutator: Mutator,
     created_rds: list[ColumnRetentionDuration],
 ):
@@ -502,6 +589,7 @@ def cleanup(
     c.DeleteAccessor(acc_support.id)
     c.DeleteAccessor(acc_security.id)
     c.DeleteAccessor(acc_marketing.id)
+    c.DeleteAccessor(acc_logging.id)
     c.DeleteMutator(mutator.id)
 
     # delete the created retention durations
@@ -518,10 +606,14 @@ def cleanup(
 def run_userstore_sample(c: Client) -> None:
     # set up the userstore with the right columns, policies, accessors, mutators,
     # and retention durations
-    acc_support, acc_security, acc_marketing, mutator, created_rds = setup(c)
+    acc_support, acc_security, acc_marketing, acc_logging, mutator, created_rds = setup(
+        c
+    )
     # run the example
-    example(c, acc_support, acc_security, acc_marketing, mutator)
-    cleanup(c, acc_support, acc_security, acc_marketing, mutator, created_rds)
+    example(c, acc_support, acc_security, acc_marketing, acc_logging, mutator)
+    cleanup(
+        c, acc_support, acc_security, acc_marketing, acc_logging, mutator, created_rds
+    )
 
 
 if __name__ == "__main__":
