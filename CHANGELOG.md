@@ -3,6 +3,7 @@
 ## 1.0.15 -- UNPUBLISHED ##
 
 * Fix future compatibility (make sure the SDK doesn't break if server sends new fields)
+* Fix handling HTTP 404 responses to some HTTP DELETE API calls
 
 ## 1.0.14 -- 12-10-2023 ##
 

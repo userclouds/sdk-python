@@ -977,7 +977,8 @@ class Client:
         args = self._request_kwargs.copy()
         args.update(kwargs)
         resp = self._client.delete(url, headers=self._get_headers(), **args)
-
+        if resp.status_code == 404:
+            return False
         if resp.status_code >= 400:
             resp_json = ucjson.loads(resp.text)
             err = Error.from_json(resp_json)
