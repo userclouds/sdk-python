@@ -449,6 +449,8 @@ class Transformer:
     id: uuid.UUID
     name: str
     input_type: str
+    output_type: str
+    reuse_existing_token: bool
     transform_type: str
     function: str
     parameters: str
@@ -458,6 +460,8 @@ class Transformer:
         id=uuid.UUID(int=0),
         name="",
         input_type="",
+        output_type="",
+        reuse_existing_token=False,
         transform_type="",
         function="",
         parameters="",
@@ -465,6 +469,8 @@ class Transformer:
         self.id = id
         self.name = name
         self.input_type = input_type
+        self.output_type = output_type
+        self.reuse_existing_token = reuse_existing_token
         self.transform_type = transform_type
         self.function = function
         self.parameters = parameters
@@ -478,6 +484,8 @@ class Transformer:
                 "id": str(self.id),
                 "name": self.name,
                 "input_type": self.input_type,
+                "output_type": self.output_type,
+                "reuse_existing_token": self.reuse_existing_token,
                 "transform_type": self.transform_type,
                 "function": self.function,
                 "parameters": self.parameters,
@@ -490,6 +498,8 @@ class Transformer:
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
             input_type=json_data["input_type"],
+            output_type=json_data["output_type"],
+            reuse_existing_token=json_data["reuse_existing_token"],
             transform_type=json_data["transform_type"],
             function=json_data["function"],
             parameters=json_data["parameters"],

@@ -93,7 +93,7 @@ class Client:
         self._request_kwargs = kwargs
         self._access_token = self._get_access_token()
 
-    ### User Operations
+    # User Operations
 
     def CreateUser(self) -> uuid.UUID:
         resp_json = self._post("/authn/users", data=ucjson.dumps({}))
@@ -140,7 +140,7 @@ class Client:
     def DeleteUser(self, id: uuid.UUID) -> bool:
         return self._delete(f"/authn/users/{id}")
 
-    ### Column Operations
+    # Column Operations
 
     def CreateColumn(self, column: Column, if_not_exists=False) -> Column:
         body = {"column": column.__dict__}
@@ -181,7 +181,7 @@ class Client:
         )
         return Column.from_json(resp_json)
 
-    ### Purpose Operations
+    # Purpose Operations
 
     def CreatePurpose(self, purpose: Purpose, if_not_exists=False) -> Purpose:
         body = {"purpose": purpose.__dict__}
@@ -225,9 +225,9 @@ class Client:
         )
         return Purpose.from_json(resp_json)
 
-    ### Retention Duration Operations
+    # Retention Duration Operations
 
-    ## Tenant Retention Duration
+    # Tenant Retention Duration
 
     # A configured tenant retention duration will apply for
     # all column purposes that do not have a configured purpose
@@ -277,7 +277,7 @@ class Client:
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
-    ## Purpose Retention Durations
+    # Purpose Retention Durations
 
     # A configured purpose retention duration will apply for all
     # column purposes that include the specified purpose, unless
@@ -333,7 +333,7 @@ class Client:
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
-    ## Column Retention Durations
+    # Column Retention Durations
 
     # A configured column purpose retention duration will override
     # any configured purpose level, tenant level, or system-level
@@ -389,7 +389,7 @@ class Client:
         )
         return ColumnRetentionDurationsResponse.from_json(resp)
 
-    ### Access Policy Templates
+    # Access Policy Templates
 
     def CreateAccessPolicyTemplate(
         self, access_policy_template: AccessPolicyTemplate, if_not_exists=False
@@ -444,7 +444,7 @@ class Client:
             params={"template_version": str(version)},
         )
 
-    ### Access Policies
+    # Access Policies
 
     def CreateAccessPolicy(
         self, access_policy: AccessPolicy, if_not_exists=False
@@ -499,7 +499,7 @@ class Client:
             params={"policy_version": str(version)},
         )
 
-    ### Transformers
+    # Transformers
 
     def CreateTransformer(self, transformer: Transformer, if_not_exists=False):
         body = {"transformer": transformer.__dict__}
@@ -531,7 +531,7 @@ class Client:
     def DeleteTransformer(self, id: uuid.UUID):
         return self._delete(f"/tokenizer/policies/transformation/{id}")
 
-    ### Accessor Operations
+    # Accessor Operations
 
     def CreateAccessor(self, accessor: Accessor, if_not_exists=False) -> Accessor:
         body = {"accessor": accessor.__dict__}
@@ -588,7 +588,7 @@ class Client:
 
         return self._post("/userstore/api/accessors", data=ucjson.dumps(body))
 
-    ### Mutator Operations
+    # Mutator Operations
 
     def CreateMutator(self, mutator: Mutator, if_not_exists=False) -> Mutator:
         body = {"mutator": mutator.__dict__}
@@ -649,7 +649,7 @@ class Client:
         j = self._post("/userstore/api/mutators", data=ucjson.dumps(body))
         return j
 
-    ### Token Operations
+    # Token Operations
 
     def CreateToken(
         self,
@@ -715,7 +715,7 @@ class Client:
         j = self._post("/tokenizer/tokens/actions/lookup", data=ucjson.dumps(body))
         return j["tokens"]
 
-    ### AuthZ Operations
+    # AuthZ Operations
 
     def ListObjects(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
@@ -891,7 +891,7 @@ class Client:
     def DownloadUserstoreSDK(self) -> str:
         return self._download("/userstore/download/codegensdk.py")
 
-    ### Access Token Helpers
+    # Access Token Helpers
 
     def _get_access_token(self) -> str:
         # Encode the client ID and client secret
@@ -931,7 +931,7 @@ class Client:
     def _get_headers(self) -> dict:
         return {"Authorization": f"Bearer {self._access_token}"}
 
-    ### Request Helpers
+    # Request Helpers
 
     def _get(self, url, **kwargs) -> dict:
         self._refresh_access_token_if_needed()
