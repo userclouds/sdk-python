@@ -91,7 +91,7 @@ class Client:
         ).decode("ascii")
         self._client = client_factory(url)
         self._request_kwargs = kwargs
-        self._access_token = self._get_access_token()
+        self._access_token: str | None = None  # lazy loaded
 
     # User Operations
 
@@ -909,11 +909,13 @@ class Client:
             data=body,
             **self._request_kwargs,
         )
+        # TODO: handle errors
         json_data = ucjson.loads(resp.text)
         return json_data.get("access_token")
 
-    def _refresh_access_token_if_needed(self):
+    def _refresh_access_token_if_needed(self) -> None:
         if self._access_token is None:
+            self._access_token = self._get_access_token()
             return
 
         # TODO: this takes advantage of an implementation detail that we use JWTs for
