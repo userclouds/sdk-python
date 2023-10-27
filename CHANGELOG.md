@@ -6,6 +6,7 @@
 - Fix handling HTTP 404 responses to some HTTP DELETE API calls.
 - Add support for output_type and reuse_existing_token fields in transformers.
 - Lazily request access token when needed instead of on client creation.
+- Improve HTTP error handling in SDK
 
 ## 1.0.14 -- 12-10-2023
 
