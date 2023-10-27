@@ -800,7 +800,7 @@ class APIErrorResponse:
         )
 
     @classmethod
-    def from_json(cls, json_data) -> APIErrorResponse:
+    def from_json(cls, json_data: dict) -> APIErrorResponse:
         return cls(
             error=json_data["error"],
             id=uuid.UUID(json_data["id"]),

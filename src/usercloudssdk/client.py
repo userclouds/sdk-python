@@ -37,18 +37,38 @@ from .models import (
 )
 
 
-class Error(BaseException):
-    def __init__(self, error="unspecified error", code=500, request_id=None):
-        self.error = error
-        self.code = code
+class Error(Exception):
+    def __init__(
+        self,
+        error: str | dict = "unspecified error",
+        http_status_code: int = -1,
+        request_id: str | None = None,
+    ) -> None:
+        super().__init__(error)
+        self._err = error
+        self.error_json = error if isinstance(error, dict) else None
+        self.code = http_status_code
         self.request_id = request_id
 
     def __repr__(self):
-        return f"Error({self.error}, {self.code}, {self.request_id})"
+        return f"Error({self._err}, {self.code}, {self.request_id})"
 
     @classmethod
-    def from_json(cls, json_data):
-        return Error(json_data["error"], json_data["request_id"])
+    def from_response(cls, resp) -> Error:
+        request_id = resp.headers.get("X-Request-Id")
+        if _is_json(resp):
+            resp_json = ucjson.loads(resp.text)
+            return cls(
+                error=resp_json["error"],
+                request_id=resp_json.get("request_id", request_id),
+                http_status_code=resp.status_code,
+            )
+        else:
+            return cls(
+                error=f"HTTP {resp.status_code} - {resp.text}",
+                request_id=request_id,
+                http_status_code=resp.status_code,
+            )
 
 
 def read_env(name: str, desc: str) -> str:
@@ -62,6 +82,10 @@ def read_env(name: str, desc: str) -> str:
 
 def create_http_client(url: str):
     return httpx.Client(base_url=url)
+
+
+def _is_json(resp) -> bool:
+    return resp.headers.get("Content-Type") == "application/json"
 
 
 class Client:
@@ -909,7 +933,8 @@ class Client:
             data=body,
             **self._request_kwargs,
         )
-        # TODO: handle errors
+        if resp.status_code >= 400:
+            raise Error.from_response(resp)
         json_data = ucjson.loads(resp.text)
         return json_data.get("access_token")
 
@@ -940,53 +965,39 @@ class Client:
         args = self._request_kwargs.copy()
         args.update(kwargs)
         resp = self._client.get(url, headers=self._get_headers(), **args)
-        resp_json = ucjson.loads(resp.text)
-
         if resp.status_code >= 400:
-            err = Error.from_json(resp_json)
-            err.code = resp.status_code
-            raise err
-        return resp_json
+            raise Error.from_response(resp)
+        return ucjson.loads(resp.text)
 
     def _post(self, url, **kwargs) -> dict | list:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
         resp = self._client.post(url, headers=self._get_headers(), **args)
-        resp_json = ucjson.loads(resp.text)
-
         if resp.status_code >= 400:
-            err = Error.from_json(resp_json)
-            err.code = resp.status_code
-            raise err
-        return resp_json
+            raise Error.from_response(resp)
+        return ucjson.loads(resp.text)
 
     def _put(self, url, **kwargs) -> dict | list:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
         resp = self._client.put(url, headers=self._get_headers(), **args)
-        resp_json = ucjson.loads(resp.text)
-
         if resp.status_code >= 400:
-            err = Error.from_json(resp_json)
-            err.code = resp.status_code
-            raise err
-        return resp_json
+            raise Error.from_response(resp)
+        return ucjson.loads(resp.text)
 
     def _delete(self, url, **kwargs) -> bool:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
         args.update(kwargs)
         resp = self._client.delete(url, headers=self._get_headers(), **args)
+
         if resp.status_code == 404:
             return False
-        if resp.status_code >= 400:
-            resp_json = ucjson.loads(resp.text)
-            err = Error.from_json(resp_json)
-            err.code = resp.status_code
-            raise err
 
+        if resp.status_code >= 400:
+            raise Error.from_response(resp)
         return resp.status_code == 204
 
     def _download(self, url, **kwargs) -> str:
@@ -997,9 +1008,9 @@ class Client:
         return resp.text
 
 
-def _id_from_identical_conflict(err):
+def _id_from_identical_conflict(err: Error) -> uuid.UUID:
     if err.code == 409:
-        api_error = APIErrorResponse.from_json(err.error)
+        api_error = APIErrorResponse.from_json(err.error_json)
         if api_error.identical:
             return api_error.id
     raise err
