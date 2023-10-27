@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from usercloudssdk.client import Client, Error
@@ -200,12 +201,19 @@ def run_authz_sample(c: Client):
 
 
 if __name__ == "__main__":
-    c = Client(url, client_id, client_secret)
+    disable_ssl_verify = (
+        os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
+    )
+    client = (
+        Client(url, client_id, client_secret, verify=False)
+        if disable_ssl_verify
+        else Client(url, client_id, client_secret)
+    )
     try:
-        run_authz_sample(c)
-    except Error as e:
-        print("Client Error: " + e.error)
+        run_authz_sample(client)
+    except Error as err:
+        print(f"Client Error: {err!r}")
         exit(1)
-    except SampleError as e:
-        print("Sample Error: " + e.error)
+    except SampleError as err:
+        print(f"Sample Error: {err!r}")
         exit(1)

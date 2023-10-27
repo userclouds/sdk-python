@@ -1,4 +1,5 @@
 import functools
+import os
 
 from usercloudssdk.client import Client, Error
 from usercloudssdk.constants import (
@@ -226,5 +227,12 @@ def run_tokenizer_sample(c: Client) -> None:
 
 
 if __name__ == "__main__":
-    c = Client(url, client_id, client_secret)
-    run_tokenizer_sample(c)
+    disable_ssl_verify = (
+        os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
+    )
+    client = (
+        Client(url, client_id, client_secret, verify=False)
+        if disable_ssl_verify
+        else Client(url, client_id, client_secret)
+    )
+    run_tokenizer_sample(client)
