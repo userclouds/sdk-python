@@ -1,4 +1,5 @@
 import json
+import os
 import uuid
 
 from usercloudssdk.client import Client, Error
@@ -617,5 +618,12 @@ def run_userstore_sample(c: Client) -> None:
 
 
 if __name__ == "__main__":
-    c = Client(url, client_id, client_secret)
-    run_userstore_sample(c)
+    disable_ssl_verify = (
+        os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
+    )
+    client = (
+        Client(url, client_id, client_secret, verify=False)
+        if disable_ssl_verify
+        else Client(url, client_id, client_secret)
+    )
+    run_userstore_sample(client)
