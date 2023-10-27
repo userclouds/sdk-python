@@ -216,7 +216,7 @@ def setup(c: Client):
         name="PIIAccessPolicyTemplate",
         function="""function policy(context, params) {
             return params.teams.includes(context.client.team);
-		}""",
+        }""",
     )
     apt = c.CreateAccessPolicyTemplate(apt, if_not_exists=True)
 
