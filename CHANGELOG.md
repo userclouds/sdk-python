@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.15 -- 27-10-2023
+## 1.0.15 -- 30-10-2023
 
 - Fix future compatibility (make sure the SDK doesn't break if server sends new fields).
 - Fix handling HTTP 404 responses to some HTTP DELETE API calls.
