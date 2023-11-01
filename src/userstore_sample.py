@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import json
 import os
 import uuid
+import warnings
 
 from usercloudssdk.client import Client, Error
 from usercloudssdk.constants import (
@@ -47,9 +50,16 @@ url = "<REPLACE ME>"
 # concepts, see docs.userclouds.com.
 
 
-def setup(c: Client):
+_PHONE_NUMBER_COLUMN_NAME = "phone_number"
+_PHONE_NUMBER_COLUMN_RESOURCE_ID = ResourceID(name=_PHONE_NUMBER_COLUMN_NAME)
+
+_SECURITY_PURPOSE_NAME = "security"
+_SECURITY_PURPOSE_RESOURCE_ID = ResourceID(name=_SECURITY_PURPOSE_NAME)
+
+
+def setup(client: Client):
     # illustrate CRUD for columns
-    col = c.CreateColumn(
+    col = client.CreateColumn(
         Column(
             None,
             "temp_column",
@@ -60,17 +70,17 @@ def setup(c: Client):
         ),
         if_not_exists=True,
     )
-    c.ListColumns()
-    col = c.GetColumn(col.id)
+    client.ListColumns()
+    col = client.GetColumn(col.id)
     col.name = "temp_column_renamed"
-    c.UpdateColumn(col)
-    c.DeleteColumn(col.id)
+    client.UpdateColumn(col)
+    client.DeleteColumn(col.id)
 
     # create phone number and home address columns
-    phone_number = c.CreateColumn(
+    phone_number = client.CreateColumn(
         Column(
             None,
-            "phone_number",
+            _PHONE_NUMBER_COLUMN_NAME,
             DATA_TYPE_STRING,
             False,
             "",
@@ -79,7 +89,7 @@ def setup(c: Client):
         if_not_exists=True,
     )
 
-    c.CreateColumn(
+    client.CreateColumn(
         Column(
             None,
             "home_addresses",
@@ -92,26 +102,26 @@ def setup(c: Client):
     )
 
     # illustrate CRUD for purposes
-    purpose = c.CreatePurpose(
+    purpose = client.CreatePurpose(
         Purpose(None, "temp_purpose", "temp_purpose_description"), if_not_exists=True
     )
-    c.ListPurposes()
-    purpose = c.GetPurpose(purpose.id)
+    client.ListPurposes()
+    purpose = client.GetPurpose(purpose.id)
     purpose.description = "new description"
-    c.UpdatePurpose(purpose)
-    c.DeletePurpose(purpose.id)
+    client.UpdatePurpose(purpose)
+    client.DeletePurpose(purpose.id)
 
     # create purposes for security, support and marketing
-    security = c.CreatePurpose(
+    security = client.CreatePurpose(
         Purpose(
             None,
-            "security",
+            _SECURITY_PURPOSE_NAME,
             "Allows access to the data in the columns for security purposes",
         ),
         if_not_exists=True,
     )
 
-    support = c.CreatePurpose(
+    support = client.CreatePurpose(
         Purpose(
             None,
             "support",
@@ -120,7 +130,7 @@ def setup(c: Client):
         if_not_exists=True,
     )
 
-    c.CreatePurpose(
+    client.CreatePurpose(
         Purpose(
             None,
             "marketing",
@@ -132,12 +142,12 @@ def setup(c: Client):
     # configure retention durations for soft-deleted data
 
     # retrieve and delete any pre-existing phone_number soft-deleted retention durations
-    phone_number_rds = c.GetSoftDeletedRetentionDurationsOnColumn(
+    phone_number_rds = client.GetSoftDeletedRetentionDurationsOnColumn(
         phone_number.id,
     )
     for rd in phone_number_rds.retention_durations:
         if rd.id != uuid.UUID(int=0):
-            c.DeleteSoftDeletedRetentionDurationOnColumn(phone_number.id, rd.id)
+            client.DeleteSoftDeletedRetentionDurationOnColumn(phone_number.id, rd.id)
 
     # retain soft-deleted phone_number values with a support purpose for 3 months
     column_rd_update = UpdateColumnRetentionDurationsRequest(
@@ -150,16 +160,16 @@ def setup(c: Client):
             ),
         ],
     )
-    created_rds = c.UpdateSoftDeletedRetentionDurationsOnColumn(
+    client.UpdateSoftDeletedRetentionDurationsOnColumn(
         phone_number.id,
         column_rd_update,
-    ).retention_durations
+    )
 
     # retrieve and delete pre-existing default soft-deleted retention duration on tenant
     try:
-        default_duration = c.GetDefaultSoftDeletedRetentionDurationOnTenant()
+        default_duration = client.GetDefaultSoftDeletedRetentionDurationOnTenant()
         if default_duration.retention_duration.id != uuid.UUID(int=0):
-            c.DeleteSoftDeletedRetentionDurationOnTenant(
+            client.DeleteSoftDeletedRetentionDurationOnTenant(
                 default_duration.retention_duration.id
             )
     except Error:
@@ -172,19 +182,18 @@ def setup(c: Client):
             duration=RetentionDuration(unit="week", duration=1),
         ),
     )
-    created_rds.append(
-        c.CreateSoftDeletedRetentionDurationOnTenant(
-            tenant_rd_update,
-        ).retention_duration
+
+    client.CreateSoftDeletedRetentionDurationOnTenant(
+        tenant_rd_update,
     )
 
     # retrieve and delete any pre-existing security purpose soft-deleted retention duration
     try:
-        purpose_rd = c.GetDefaultSoftDeletedRetentionDurationOnPurpose(
+        purpose_rd = client.GetDefaultSoftDeletedRetentionDurationOnPurpose(
             security.id,
         )
         if purpose_rd.retention_duration.id != uuid.UUID(int=0):
-            c.DeleteSoftDeletedRetentionDurationOnPurpose(
+            client.DeleteSoftDeletedRetentionDurationOnPurpose(
                 security.id, purpose_rd.retention_duration.id
             )
     except Error:
@@ -198,15 +207,14 @@ def setup(c: Client):
             purpose_id=security.id,
         ),
     )
-    created_rds.append(
-        c.CreateSoftDeletedRetentionDurationOnPurpose(
-            security.id,
-            purpose_rd_update,
-        ).retention_duration
+
+    client.CreateSoftDeletedRetentionDurationOnPurpose(
+        security.id,
+        purpose_rd_update,
     )
 
     # retrieve phone_number soft-deleted retention durations after configuration
-    phone_number_rds = c.GetSoftDeletedRetentionDurationsOnColumn(
+    phone_number_rds = client.GetSoftDeletedRetentionDurationsOnColumn(
         phone_number.id,
     )
     print(f"phone_number retention durations post-configuration: {phone_number_rds}\n")
@@ -219,7 +227,7 @@ def setup(c: Client):
             return params.teams.includes(context.client.team);
         }""",
     )
-    apt = c.CreateAccessPolicyTemplate(apt, if_not_exists=True)
+    apt = client.CreateAccessPolicyTemplate(apt, if_not_exists=True)
 
     ap = AccessPolicy(
         name="PIIAccessForSecurityandSupport",
@@ -231,7 +239,7 @@ def setup(c: Client):
             )
         ],
     )
-    ap = c.CreateAccessPolicy(ap, if_not_exists=True)
+    ap = client.CreateAccessPolicy(ap, if_not_exists=True)
 
     # Create a transformer that transforms the data in the columns for security and
     # support teams
@@ -260,7 +268,7 @@ function transform(data, params) {
         phone_transformer_function,
         '{"team": "support_team"}',
     )
-    support_phone_transformer = c.CreateTransformer(
+    support_phone_transformer = client.CreateTransformer(
         support_phone_transformer, if_not_exists=True
     )
 
@@ -274,7 +282,7 @@ function transform(data, params) {
         phone_transformer_function,
         '{"team": "security_team"}',
     )
-    security_phone_transformer = c.CreateTransformer(
+    security_phone_transformer = client.CreateTransformer(
         security_phone_transformer, if_not_exists=True
     )
 
@@ -312,7 +320,7 @@ function id(len) {
         '{"team": "security_team"}',
     )
 
-    logging_phone_transformer = c.CreateTransformer(
+    logging_phone_transformer = client.CreateTransformer(
         logging_phone_transformer, if_not_exists=True
     )
     # Accessors are configurable APIs that allow a client to retrieve data from the user
@@ -320,7 +328,7 @@ function id(len) {
     # policies and minimize outbound data from the store for their given use case.
 
     # Selectors are used to filter the set of users that are returned by an accessor.
-    # They are eseentially SQL WHERE clauses and are configured per-accessor /
+    # They are essentially SQL WHERE clauses and are configured per-accessor /
     # per-mutator referencing column IDs of the userstore.
 
     # Here we create accessors for two example teams: (1) security team and (2) support
@@ -332,7 +340,7 @@ function id(len) {
         "Accessor for support team",
         [
             ColumnOutputConfig(
-                column=ResourceID(name="phone_number"),
+                column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 transformer=ResourceID(id=support_phone_transformer.id),
             ),
             ColumnOutputConfig(
@@ -352,15 +360,15 @@ function id(len) {
         UserSelectorConfig("{id} = ?"),
         [ResourceID(name="support")],
     )
-    acc_support = c.CreateAccessor(acc_support, if_not_exists=True)
+    acc_support = client.CreateAccessor(acc_support, if_not_exists=True)
 
     # illustrate updating accessor, getting, and listing accessors
     acc_support.description = "New Name"
-    acc_support = c.UpdateAccessor(acc_support)
+    acc_support = client.UpdateAccessor(acc_support)
     acc_support.description = "Accessor for support team"
-    acc_support = c.UpdateAccessor(acc_support)
-    acc_support = c.GetAccessor(acc_support.id)
-    c.ListAccessors()
+    acc_support = client.UpdateAccessor(acc_support)
+    acc_support = client.GetAccessor(acc_support.id)
+    client.ListAccessors()
 
     acc_security = Accessor(
         None,
@@ -368,7 +376,7 @@ function id(len) {
         "Accessor for security team",
         [
             ColumnOutputConfig(
-                column=ResourceID(name="phone_number"),
+                column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 transformer=ResourceID(id=security_phone_transformer.id),
             ),
             ColumnOutputConfig(
@@ -389,9 +397,9 @@ function id(len) {
             "{home_addresses}->>'street_address_line_1' LIKE (?) AND "
             + "{phone_number} = (?)"
         ),
-        [ResourceID(name="security")],
+        [_SECURITY_PURPOSE_RESOURCE_ID],
     )
-    acc_security = c.CreateAccessor(acc_security, if_not_exists=True)
+    acc_security = client.CreateAccessor(acc_security, if_not_exists=True)
 
     acc_marketing = Accessor(
         None,
@@ -399,7 +407,7 @@ function id(len) {
         "Accessor for marketing team",
         [
             ColumnOutputConfig(
-                column=ResourceID(name="phone_number"),
+                column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
             ColumnOutputConfig(
@@ -417,9 +425,9 @@ function id(len) {
         ],
         ResourceID(id=AccessPolicyOpen.id),
         UserSelectorConfig("{id} = ?"),
-        [ResourceID(name="security")],
+        [_SECURITY_PURPOSE_RESOURCE_ID],
     )
-    acc_marketing = c.CreateAccessor(acc_marketing, if_not_exists=True)
+    acc_marketing = client.CreateAccessor(acc_marketing, if_not_exists=True)
 
     acc_logging = Accessor(
         None,
@@ -427,16 +435,16 @@ function id(len) {
         "Accessor for getting phone number token for security team",
         [
             ColumnOutputConfig(
-                column=ResourceID(name="phone_number"),
+                column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 transformer=ResourceID(id=logging_phone_transformer.id),
             ),
         ],
         ResourceID(id=AccessPolicyOpen.id),
         UserSelectorConfig("{id} = ?"),
-        [ResourceID(name="security")],
+        [_SECURITY_PURPOSE_RESOURCE_ID],
         ResourceID(id=AccessPolicyOpen.id),
     )
-    acc_logging = c.CreateAccessor(acc_logging, if_not_exists=True)
+    acc_logging = client.CreateAccessor(acc_logging, if_not_exists=True)
 
     # Mutators are configurable APIs that allow a client to write data to the User
     # Store. Mutators (setters) can be thought of as the complement to accessors
@@ -448,7 +456,7 @@ function id(len) {
         "Mutator for updating phone number and home address",
         [
             ColumnInputConfig(
-                column=ResourceID(name="phone_number"),
+                column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 validator=ResourceID(id=ValidatorOpen.id),
             ),
             ColumnInputConfig(
@@ -459,16 +467,16 @@ function id(len) {
         ResourceID(id=AccessPolicyOpen.id),
         UserSelectorConfig("{id} = ?"),
     )
-    mutator = c.CreateMutator(mutator, if_not_exists=True)
+    mutator = client.CreateMutator(mutator, if_not_exists=True)
     # illustrate updating, getting, and listing mutators
     mutator.description = "New description"
-    mutator = c.UpdateMutator(mutator)
+    mutator = client.UpdateMutator(mutator)
     mutator.description = "Mutator for updating phone number and home address"
-    mutator = c.UpdateMutator(mutator)
-    mutator = c.GetMutator(mutator.id)
-    c.ListMutators()
+    mutator = client.UpdateMutator(mutator)
+    mutator = client.GetMutator(mutator.id)
+    client.ListMutators()
 
-    return acc_support, acc_security, acc_marketing, acc_logging, mutator, created_rds
+    return acc_support, acc_security, acc_marketing, acc_logging, mutator
 
 
 def example(
@@ -494,7 +502,7 @@ def example(
 
     # update the user using the "old way" (not using mutators) just for illustration
     profile = user.profile
-    profile["phone_number"] = "123-456-7890"
+    profile[_PHONE_NUMBER_COLUMN_NAME] = "123-456-7890"
     c.UpdateUser(uid, profile)
 
     # retrieve the user the "old way" (not using accessors) just for illustration
@@ -507,10 +515,10 @@ def example(
         {},
         [uid],
         {
-            "phone_number": {
+            _PHONE_NUMBER_COLUMN_NAME: {
                 "value": "123-456-7890",
                 "purpose_additions": [
-                    {"Name": "security"},
+                    {"Name": _SECURITY_PURPOSE_NAME},
                     {"Name": "support"},
                     {"Name": "operational"},
                 ],
@@ -520,7 +528,7 @@ def example(
 Terrace", "locality":"Springfield"}, {"country":"usa", "street_address_line_1":"123 \
 Main St", "locality":"Pleasantville"}]',
                 "purpose_additions": [
-                    {"Name": "security"},
+                    {"Name": _SECURITY_PURPOSE_NAME},
                     {"Name": "support"},
                     {"Name": "operational"},
                 ],
@@ -555,7 +563,7 @@ Main St", "locality":"Pleasantville"}]',
         [uid],
     )
     # expect to get back a token
-    token = json.loads(resolved["data"][0]).get("phone_number")
+    token = json.loads(resolved["data"][0])[_PHONE_NUMBER_COLUMN_NAME]
     print(f"user's phone token (first call) {token}\n")
 
     resolved = c.ExecuteAccessor(
@@ -565,12 +573,12 @@ Main St", "locality":"Pleasantville"}]',
     )
 
     # expect to get back the same token so it can be used in logs as a unique identifier if desired
-    token = json.loads(resolved["data"][0]).get("phone_number")
+    token = json.loads(resolved["data"][0])[_PHONE_NUMBER_COLUMN_NAME]
     print(f"user's phone token (repeat call) {token}\n")
 
     # resolving the token to the original phone number
     value = c.ResolveTokens(
-        [token], {"team": "security_team"}, [ResourceID(name="security")]
+        [token], {"team": "security_team"}, [_SECURITY_PURPOSE_RESOURCE_ID]
     )
     print(f"user's phone token resolved  {value}\n")
 
@@ -578,43 +586,93 @@ Main St", "locality":"Pleasantville"}]',
 
 
 def cleanup(
-    c: Client,
+    client: Client,
     acc_support: Accessor,
     acc_security: Accessor,
     acc_marketing: Accessor,
     acc_logging: Accessor,
     mutator: Mutator,
-    created_rds: list[ColumnRetentionDuration],
 ):
     # delete the accessors and mutators
-    c.DeleteAccessor(acc_support.id)
-    c.DeleteAccessor(acc_security.id)
-    c.DeleteAccessor(acc_marketing.id)
-    c.DeleteAccessor(acc_logging.id)
-    c.DeleteMutator(mutator.id)
+    client.DeleteAccessor(acc_support.id)
+    client.DeleteAccessor(acc_security.id)
+    client.DeleteAccessor(acc_marketing.id)
+    client.DeleteAccessor(acc_logging.id)
+    client.DeleteMutator(mutator.id)
 
     # delete the created retention durations
+    clean_retention_durations(client)
+
+
+def clean_retention_durations(client: Client) -> None:
+    column_id = next(
+        (
+            col.id
+            for col in client.ListColumns()
+            if col.name == _PHONE_NUMBER_COLUMN_NAME
+        ),
+        None,
+    )
+    purpose_id = next(
+        (
+            purpose.id
+            for purpose in client.ListPurposes()
+            if purpose.name == _SECURITY_PURPOSE_NAME
+        ),
+        None,
+    )
+
+    if column_id:
+        created_rds = client.GetSoftDeletedRetentionDurationsOnColumn(
+            column_id
+        ).retention_durations
+    else:
+        created_rds: list[RetentionDuration] = []
+        warnings.warn(f"Failed to find column - {_PHONE_NUMBER_COLUMN_NAME}")
+    created_rds.append(
+        client.GetDefaultSoftDeletedRetentionDurationOnTenant().retention_duration
+    )
+    if purpose_id:
+        created_rds.append(
+            client.GetDefaultSoftDeletedRetentionDurationOnPurpose(
+                purpose_id
+            ).retention_duration
+        )
+    else:
+        warnings.warn(f"Failed to find purpose - {_SECURITY_PURPOSE_NAME}")
+
     for rd in created_rds:
+        if rd.id == uuid.UUID(int=0):
+            continue
         if rd.column_id == uuid.UUID(int=0):
             if rd.purpose_id == uuid.UUID(int=0):
-                c.DeleteSoftDeletedRetentionDurationOnTenant(rd.id)
+                if not client.DeleteSoftDeletedRetentionDurationOnTenant(rd.id):
+                    warnings.warn(
+                        f"Failed to delete default retention duration on tenant - {rd.id=}"
+                    )
             else:
-                c.DeleteSoftDeletedRetentionDurationOnPurpose(rd.purpose_id, rd.id)
+                if not client.DeleteSoftDeletedRetentionDurationOnPurpose(
+                    rd.purpose_id, rd.id
+                ):
+                    warnings.warn(
+                        f"Failed to delete default retention duration on purpose - {rd.id=} - {rd.purpose_id=}"
+                    )
         else:
-            c.DeleteSoftDeletedRetentionDurationOnColumn(rd.column_id, rd.id)
+            if not client.DeleteSoftDeletedRetentionDurationOnColumn(
+                rd.column_id, rd.id
+            ):
+                warnings.warn(
+                    f"Failed to delete default retention duration on column - {rd.id=} - {rd.column_id=}"
+                )
 
 
-def run_userstore_sample(c: Client) -> None:
+def run_userstore_sample(client: Client) -> None:
     # set up the userstore with the right columns, policies, accessors, mutators,
     # and retention durations
-    acc_support, acc_security, acc_marketing, acc_logging, mutator, created_rds = setup(
-        c
-    )
+    acc_support, acc_security, acc_marketing, acc_logging, mutator = setup(client)
     # run the example
-    example(c, acc_support, acc_security, acc_marketing, acc_logging, mutator)
-    cleanup(
-        c, acc_support, acc_security, acc_marketing, acc_logging, mutator, created_rds
-    )
+    example(client, acc_support, acc_security, acc_marketing, acc_logging, mutator)
+    cleanup(client, acc_support, acc_security, acc_marketing, acc_logging, mutator)
 
 
 if __name__ == "__main__":
