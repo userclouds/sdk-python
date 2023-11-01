@@ -480,7 +480,7 @@ function id(len) {
 
 
 def example(
-    c: Client,
+    client: Client,
     acc_support: Accessor,
     acc_security: Accessor,
     acc_marketing: Accessor,
@@ -490,27 +490,27 @@ def example(
     email = "me@example.org"
 
     # delete any existing test users with the email address or external alias
-    users = c.ListUsers(email=email)
+    users = client.ListUsers(email=email)
     for user in users:
-        c.DeleteUser(user.id)
+        client.DeleteUser(user.id)
 
     # create a user
-    uid = c.CreateUser()
+    uid = client.CreateUser()
 
     # retrieve the user the "old way" (not using accessors) just for illustration
-    user = c.GetUser(uid)
+    user = client.GetUser(uid)
 
     # update the user using the "old way" (not using mutators) just for illustration
     profile = user.profile
     profile[_PHONE_NUMBER_COLUMN_NAME] = "123-456-7890"
-    c.UpdateUser(uid, profile)
+    client.UpdateUser(uid, profile)
 
     # retrieve the user the "old way" (not using accessors) just for illustration
-    user = c.GetUser(uid)
+    user = client.GetUser(uid)
     print(f"old way: user's details are {user.profile}\n")
 
     # set the user's info using the mutator
-    c.ExecuteMutator(
+    client.ExecuteMutator(
         mutator.id,
         {},
         [uid],
@@ -537,11 +537,11 @@ Main St", "locality":"Pleasantville"}]',
     )
 
     # now retrieve the user's info using the accessor with the right context
-    resolved = c.ExecuteAccessor(acc_support.id, {"team": "support_team"}, [uid])
+    resolved = client.ExecuteAccessor(acc_support.id, {"team": "support_team"}, [uid])
     # expect ['["XXX-XXX-7890","<home address hidden>"]']
     print(f"support context: user's details are {resolved}\n")
 
-    resolved = c.ExecuteAccessor(
+    resolved = client.ExecuteAccessor(
         acc_security.id,
         {"team": "security_team"},
         ["%Evergreen%", "123-456-7890"],
@@ -549,7 +549,7 @@ Main St", "locality":"Pleasantville"}]',
     # expect full details
     print(f"security context: user's details are {resolved}\n")
 
-    resolved = c.ExecuteAccessor(
+    resolved = client.ExecuteAccessor(
         acc_marketing.id,
         {"team": "marketing_team"},
         [uid],
@@ -557,7 +557,7 @@ Main St", "locality":"Pleasantville"}]',
     # expect [] (due to team mismatch in access policy)
     print(f"marketing context: user's details are {resolved}\n")
 
-    resolved = c.ExecuteAccessor(
+    resolved = client.ExecuteAccessor(
         acc_logging.id,
         {"team": "security_team"},
         [uid],
@@ -566,7 +566,7 @@ Main St", "locality":"Pleasantville"}]',
     token = json.loads(resolved["data"][0])[_PHONE_NUMBER_COLUMN_NAME]
     print(f"user's phone token (first call) {token}\n")
 
-    resolved = c.ExecuteAccessor(
+    resolved = client.ExecuteAccessor(
         acc_logging.id,
         {"team": "security_team"},
         [uid],
@@ -577,12 +577,12 @@ Main St", "locality":"Pleasantville"}]',
     print(f"user's phone token (repeat call) {token}\n")
 
     # resolving the token to the original phone number
-    value = c.ResolveTokens(
+    value = client.ResolveTokens(
         [token], {"team": "security_team"}, [_SECURITY_PURPOSE_RESOURCE_ID]
     )
     print(f"user's phone token resolved  {value}\n")
 
-    c.DeleteUser(uid)
+    client.DeleteUser(uid)
 
 
 def cleanup(

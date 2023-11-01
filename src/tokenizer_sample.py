@@ -21,18 +21,18 @@ client_secret = "<REPLACE ME>"
 url = "<REPLACE ME>"
 
 
-def test_access_policies(c: Client):
+def test_access_policies(client: Client):
     new_apt = AccessPolicyTemplate(
         name="test_template",
         function=f"function policy(x, y) {{ return false /* {id} */}};",
     )
 
     try:
-        created_apt = c.CreateAccessPolicyTemplate(new_apt, if_not_exists=True)
+        created_apt = client.CreateAccessPolicyTemplate(new_apt, if_not_exists=True)
         # no op, but illustrates how to get a policy template
-        created_apt = c.GetAccessPolicyTemplate(ResourceID(id=created_apt.id))
+        created_apt = client.GetAccessPolicyTemplate(ResourceID(id=created_apt.id))
         created_apt.description = "updated description"
-        c.UpdateAccessPolicyTemplate(created_apt)
+        client.UpdateAccessPolicyTemplate(created_apt)
     except Error as e:
         print("failed to create new access policy template: ", e)
         raise
@@ -48,16 +48,16 @@ def test_access_policies(c: Client):
     )
 
     try:
-        created_ap = c.CreateAccessPolicy(new_ap, if_not_exists=True)
+        created_ap = client.CreateAccessPolicy(new_ap, if_not_exists=True)
         # no op, but illustrates how to get a policy
-        created_ap = c.GetAccessPolicy(ResourceID(id=created_ap.id))
+        created_ap = client.GetAccessPolicy(ResourceID(id=created_ap.id))
     except Error as e:
         print("failed to create new access policy: ", e)
         raise
 
     aps = []
     try:
-        aps = c.ListAccessPolicies()
+        aps = client.ListAccessPolicies()
     except Error as e:
         print("failed to list access policies: ", e)
         raise
@@ -72,7 +72,7 @@ def test_access_policies(c: Client):
     created_ap.components[0].template_parameters = '{"foo": "bar"}'
 
     try:
-        update = c.UpdateAccessPolicy(created_ap)
+        update = client.UpdateAccessPolicy(created_ap)
         if update.version != created_ap.version + 1:
             print(
                 f"update changed version from {created_ap.version} to {update.version},\
@@ -83,14 +83,14 @@ def test_access_policies(c: Client):
         raise
 
     try:
-        if not c.DeleteAccessPolicy(update.id, update.version):
+        if not client.DeleteAccessPolicy(update.id, update.version):
             print("failed to delete access policy but no error?")
     except Error as e:
         print("failed to delete access policy: ", e)
         raise
 
     try:
-        aps = c.ListAccessPolicies()
+        aps = client.ListAccessPolicies()
         for ap in aps:
             if ap.id == update.id:
                 if ap.version != 0:
@@ -104,23 +104,23 @@ def test_access_policies(c: Client):
     # clean up the original AP and Template so you can re-run the sample repeatedly
     # without an error
     try:
-        if not c.DeleteAccessPolicy(update.id, 0):
+        if not client.DeleteAccessPolicy(update.id, 0):
             print("failed to delete access policy but no error?")
     except Error as e:
         print("failed to delete access policy: ", e)
         raise
 
     try:
-        if not c.DeleteAccessPolicyTemplate(
+        if not client.DeleteAccessPolicyTemplate(
             created_apt.id, 1
-        ) or not c.DeleteAccessPolicyTemplate(created_apt.id, 0):
+        ) or not client.DeleteAccessPolicyTemplate(created_apt.id, 0):
             print("failed to delete access policy template but no error?")
     except Error as e:
         print("failed to delete access policy template: ", e)
         raise
 
 
-def test_transformers(c: Client):
+def test_transformers(client: Client):
     new_gp = Transformer(
         name="test_transformer",
         input_type=DATA_TYPE_STRING,
@@ -130,14 +130,14 @@ def test_transformers(c: Client):
     )
 
     try:
-        created_gp = c.CreateTransformer(new_gp, if_not_exists=True)
+        created_gp = client.CreateTransformer(new_gp, if_not_exists=True)
     except Error as e:
         print("failed to create new transformer: ", e)
         raise
 
     gps = []
     try:
-        gps = c.ListTransformers()
+        gps = client.ListTransformers()
     except Error as e:
         print("failed to list transformers: ", e)
         raise
@@ -150,19 +150,19 @@ def test_transformers(c: Client):
         print("missing new transformer in list: ", gps)
 
     try:
-        if not c.DeleteTransformer(created_gp.id):
+        if not client.DeleteTransformer(created_gp.id):
             print("failed to delete transformer but no error?")
     except Error as e:
         print("failed to delete transformer: ", e)
         raise
 
 
-def test_token_apis(c: Client):
+def test_token_apis(client: Client) -> None:
     originalData = "something very secret"
-    token = c.CreateToken(originalData, TransformerUUID, AccessPolicyOpen)
+    token = client.CreateToken(originalData, TransformerUUID, AccessPolicyOpen)
     print(f"Token: {token}")
 
-    resp = c.ResolveTokens([token], {}, [])
+    resp = client.ResolveTokens([token], {}, [])
     if len(resp) != 1 or resp[0]["data"] != originalData:
         print("something went wrong")
     else:
@@ -170,7 +170,9 @@ def test_token_apis(c: Client):
 
     lookup_tokens = None
     try:
-        lookup_tokens = c.LookupToken(originalData, TransformerUUID, AccessPolicyOpen)
+        lookup_tokens = client.LookupToken(
+            originalData, TransformerUUID, AccessPolicyOpen
+        )
     except Error as e:
         print("failed to lookup token: ", e)
         raise
@@ -182,7 +184,7 @@ def test_token_apis(c: Client):
 
     itr = None
     try:
-        itr = c.InspectToken(token)
+        itr = client.InspectToken(token)
     except Error as e:
         print("failed to inspect token: ", e)
         raise
@@ -201,16 +203,16 @@ access policy {AccessPolicyOpen.id}"
         )
 
     try:
-        if not c.DeleteToken(token):
+        if not client.DeleteToken(token):
             print("failed to delete token but no error?")
     except Error as e:
         print("failed to delete token: ", e)
         raise
 
 
-def test_error_handling(c):
+def test_error_handling(client: Client) -> None:
     try:
-        d = c.ResolveTokens(["not a token"], {}, [])
+        d = client.ResolveTokens(["not a token"], {}, [])
         if d[0]["data"] != "":
             print("expected nothing but got data: ", d)
     except Error as e:
@@ -219,11 +221,11 @@ def test_error_handling(c):
             raise
 
 
-def run_tokenizer_sample(c: Client) -> None:
-    test_access_policies(c)
-    test_transformers(c)
-    test_token_apis(c)
-    test_error_handling(c)
+def run_tokenizer_sample(client: Client) -> None:
+    test_access_policies(client)
+    test_transformers(client)
+    test_token_apis(client)
+    test_error_handling(client)
 
 
 if __name__ == "__main__":
