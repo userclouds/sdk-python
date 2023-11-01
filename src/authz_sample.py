@@ -82,41 +82,41 @@ def setup_authz(c: Client):
     c.ListOrganizations()
 
 
-def test_authz(c: Client):
-    original_obj_count = len(c.ListObjects())
-    original_edge_count = len(c.ListEdges())
+def test_authz(client: Client) -> None:
+    original_obj_count = len(client.ListObjects())
+    original_edge_count = len(client.ListEdges())
 
     objects = []
     edges = []
 
     try:
-        user = c.CreateObject(
+        user = client.CreateObject(
             Object(id=uuid.uuid4(), type_id=DocUserObjectType.id, alias="user")
         )
-        user = c.GetObject(user.id)  # no-op, just illustrative
+        user = client.GetObject(user.id)  # no-op, just illustrative
         objects.append(user)
 
-        folder1 = c.CreateObject(
+        folder1 = client.CreateObject(
             Object(id=uuid.uuid4(), type_id=FolderObjectType.id, alias="folder1")
         )
         objects.append(folder1)
 
-        folder2 = c.CreateObject(
+        folder2 = client.CreateObject(
             Object(id=uuid.uuid4(), type_id=FolderObjectType.id, alias="folder2")
         )
         objects.append(folder2)
 
-        doc1 = c.CreateObject(
+        doc1 = client.CreateObject(
             Object(id=uuid.uuid4(), type_id=DocumentObjectType.id, alias="doc1")
         )
         objects.append(doc1)
 
-        doc2 = c.CreateObject(
+        doc2 = client.CreateObject(
             Object(id=uuid.uuid4(), type_id=DocumentObjectType.id, alias="doc2")
         )
         objects.append(doc2)
 
-        new_edge = c.CreateEdge(
+        new_edge = client.CreateEdge(
             Edge(
                 id=uuid.uuid4(),
                 edge_type_id=UserViewFolderEdgeType.id,
@@ -124,11 +124,11 @@ def test_authz(c: Client):
                 target_object_id=folder1.id,
             )
         )
-        new_edge = c.GetEdge(new_edge.id)  # no-op, just illustrative
+        new_edge = client.GetEdge(new_edge.id)  # no-op, just illustrative
         edges.append(new_edge)
 
         edges.append(
-            c.CreateEdge(
+            client.CreateEdge(
                 Edge(
                     id=uuid.uuid4(),
                     edge_type_id=FolderViewFolderEdgeType.id,
@@ -139,7 +139,7 @@ def test_authz(c: Client):
         )
 
         edges.append(
-            c.CreateEdge(
+            client.CreateEdge(
                 Edge(
                     id=uuid.uuid4(),
                     edge_type_id=FolderViewDocEdgeType.id,
@@ -150,30 +150,30 @@ def test_authz(c: Client):
         )
 
         # user can view folder1
-        if not c.CheckAttribute(user.id, folder1.id, "view"):
+        if not client.CheckAttribute(user.id, folder1.id, "view"):
             raise SampleError("user cannot view folder1 but should be able to")
 
         # user can view folder2
-        if not c.CheckAttribute(user.id, folder2.id, "view"):
+        if not client.CheckAttribute(user.id, folder2.id, "view"):
             raise SampleError("user cannot view folder2 but should be able to")
 
         # user cannot view doc1
-        if c.CheckAttribute(user.id, doc1.id, "view"):
+        if client.CheckAttribute(user.id, doc1.id, "view"):
             raise SampleError("user can view doc1 but should not be able to")
 
         # user can view doc2
-        if not c.CheckAttribute(user.id, doc2.id, "view"):
+        if not client.CheckAttribute(user.id, doc2.id, "view"):
             raise SampleError("user cannot view doc2 but should be able to")
 
     finally:
         for e in edges:
-            c.DeleteEdge(e.id)
+            client.DeleteEdge(e.id)
 
         for o in objects:
-            c.DeleteObject(o.id)
+            client.DeleteObject(o.id)
 
-    final_obj_count = len(c.ListObjects())
-    final_edge_count = len(c.ListEdges())
+    final_obj_count = len(client.ListObjects())
+    final_edge_count = len(client.ListEdges())
 
     if final_obj_count != original_obj_count:
         raise SampleError("object count changed")
@@ -182,22 +182,24 @@ def test_authz(c: Client):
         raise SampleError("edge count changed")
 
 
-def cleanup(c: Client):
-    user_view_et = c.GetEdgeType(UserViewFolderEdgeType.id)  # no-op, just illustrative
-    c.DeleteEdgeType(user_view_et.id)
-    c.DeleteEdgeType(FolderViewFolderEdgeType.id)
-    c.DeleteEdgeType(FolderViewDocEdgeType.id)
+def cleanup(client: Client) -> None:
+    user_view_et = client.GetEdgeType(
+        UserViewFolderEdgeType.id
+    )  # no-op, just illustrative
+    client.DeleteEdgeType(user_view_et.id)
+    client.DeleteEdgeType(FolderViewFolderEdgeType.id)
+    client.DeleteEdgeType(FolderViewDocEdgeType.id)
 
-    doc_ot = c.GetObjectType(DocumentObjectType.id)  # no-op, just illustrative
-    c.DeleteObjectType(doc_ot.id)
-    c.DeleteObjectType(DocUserObjectType.id)
-    c.DeleteObjectType(FolderObjectType.id)
+    doc_ot = client.GetObjectType(DocumentObjectType.id)  # no-op, just illustrative
+    client.DeleteObjectType(doc_ot.id)
+    client.DeleteObjectType(DocUserObjectType.id)
+    client.DeleteObjectType(FolderObjectType.id)
 
 
-def run_authz_sample(c: Client):
-    setup_authz(c)
-    test_authz(c)
-    cleanup(c)
+def run_authz_sample(client: Client) -> None:
+    setup_authz(client)
+    test_authz(client)
+    cleanup(client)
 
 
 if __name__ == "__main__":
