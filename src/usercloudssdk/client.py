@@ -118,6 +118,8 @@ class Client:
 
     # User Operations
 
+    # AuthN user methods (shouldn't be used by UserStore customers)
+
     def CreateUser(self) -> uuid.UUID:
         resp_json = self._post("/authn/users", data=ucjson.dumps({}))
         return resp_json.get("id")
@@ -162,6 +164,25 @@ class Client:
 
     def DeleteUser(self, id: uuid.UUID) -> bool:
         return self._delete(f"/authn/users/{id}")
+
+    # Userstore user methods (should be used along with Accessor and Mutator methods)
+
+    def CreateUserWithMutator(
+        self,
+        mutator_id: uuid.UUID,
+        context: dict,
+        row_data: dict,
+        organization_id: uuid.UUID | None = None,
+    ) -> uuid.UUID:
+        body = {
+            "mutator_id": mutator_id,
+            "context": context,
+            "row_data": row_data,
+            "organization_id": organization_id,
+        }
+
+        j = self._post("/userstore/api/users", data=ucjson.dumps(body))
+        return j
 
     # Column Operations
 
