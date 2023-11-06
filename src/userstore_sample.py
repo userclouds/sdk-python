@@ -56,6 +56,9 @@ _PHONE_NUMBER_COLUMN_RESOURCE_ID = ResourceID(name=_PHONE_NUMBER_COLUMN_NAME)
 _SECURITY_PURPOSE_NAME = "security"
 _SECURITY_PURPOSE_RESOURCE_ID = ResourceID(name=_SECURITY_PURPOSE_NAME)
 
+_EMAIL_COLUMN_NAME = "email"
+_EMAIL_COLUMN_RESOURCE_ID = ResourceID(name=_EMAIL_COLUMN_NAME)
+
 
 def setup(client: Client):
     # illustrate CRUD for columns
@@ -76,7 +79,7 @@ def setup(client: Client):
     client.UpdateColumn(col)
     client.DeleteColumn(col.id)
 
-    # create phone number and home address columns
+    # create phone number, home address, and email columns
     phone_number = client.CreateColumn(
         Column(
             id=None,
@@ -97,6 +100,18 @@ def setup(client: Client):
             is_array=True,
             default_value="",
             index_type=COLUMN_INDEX_TYPE_NONE,
+        ),
+        if_not_exists=True,
+    )
+
+    client.CreateColumn(
+        Column(
+            id=None,
+            name=_EMAIL_COLUMN_NAME,
+            type=DATA_TYPE_STRING,
+            is_array=False,
+            default_value="",
+            index_type=COLUMN_INDEX_TYPE_INDEXED,
         ),
         if_not_exists=True,
     )
@@ -450,8 +465,8 @@ function id(len) {
     # Mutators are configurable APIs that allow a client to write data to the User
     # Store. Mutators (setters) can be thought of as the complement to accessors
     # (getters). Here we create mutator to update the user's phone number and home
-    # address.
-    mutator = Mutator(
+    # address, and another mutator for updating email address.
+    phone_address_mutator = Mutator(
         id=None,
         name="PhoneAndAddressMutator",
         description="Mutator for updating phone number and home address",
@@ -468,16 +483,42 @@ function id(len) {
         access_policy=ResourceID(id=AccessPolicyOpen.id),
         selector_config=UserSelectorConfig("{id} = ?"),
     )
-    mutator = client.CreateMutator(mutator, if_not_exists=True)
+    phone_address_mutator = client.CreateMutator(
+        phone_address_mutator, if_not_exists=True
+    )
     # illustrate updating, getting, and listing mutators
-    mutator.description = "New description"
-    mutator = client.UpdateMutator(mutator)
-    mutator.description = "Mutator for updating phone number and home address"
-    mutator = client.UpdateMutator(mutator)
-    mutator = client.GetMutator(mutator.id)
+    phone_address_mutator.description = "New description"
+    phone_address_mutator = client.UpdateMutator(phone_address_mutator)
+    phone_address_mutator.description = (
+        "Mutator for updating phone number and home address"
+    )
+    phone_address_mutator = client.UpdateMutator(phone_address_mutator)
+    phone_address_mutator = client.GetMutator(phone_address_mutator.id)
     client.ListMutators()
 
-    return acc_support, acc_security, acc_marketing, acc_logging, mutator
+    email_mutator = Mutator(
+        id=None,
+        name="EmailMutator",
+        description="Mutator for updating email",
+        columns=[
+            ColumnInputConfig(
+                column=_EMAIL_COLUMN_RESOURCE_ID,
+                validator=ResourceID(id=ValidatorOpen.id),
+            ),
+        ],
+        access_policy=ResourceID(id=AccessPolicyOpen.id),
+        selector_config=UserSelectorConfig("{id} = ?"),
+    )
+    email_mutator = client.CreateMutator(email_mutator, if_not_exists=True)
+
+    return (
+        acc_support,
+        acc_security,
+        acc_marketing,
+        acc_logging,
+        phone_address_mutator,
+        email_mutator,
+    )
 
 
 def example(
@@ -486,11 +527,12 @@ def example(
     acc_security: Accessor,
     acc_marketing: Accessor,
     acc_logging: Accessor,
-    mutator: Mutator,
+    phone_address_mutator: Mutator,
+    email_mutator: Mutator,
 ):
     email = "me@example.org"
 
-    # delete any existing test users with the email address or external alias
+    # delete any existing test users with the email address for their AuthN
     users = client.ListUsers(email=email)
     for user in users:
         client.DeleteUser(user.id)
@@ -503,6 +545,7 @@ def example(
 
     # update the user using the "old way" (not using mutators) just for illustration
     profile = user.profile
+    profile[_EMAIL_COLUMN_NAME] = email
     profile[_PHONE_NUMBER_COLUMN_NAME] = "123-456-7890"
     client.UpdateUser(uid, profile)
 
@@ -510,12 +553,28 @@ def example(
     user = client.GetUser(uid)
     print(f"old way: user's details are {user.profile}\n")
 
+    client.DeleteUser(uid)
+
+    # create and initialize a user with email address
+    uid = client.CreateUserWithMutator(
+        mutator_id=email_mutator.id,
+        context={},
+        row_data={
+            "email": {
+                "value": email,
+                "purpose_additions": [
+                    {"Name": "operational"},
+                ],
+            },
+        },
+    )
+
     # set the user's info using the mutator
     client.ExecuteMutator(
-        mutator.id,
-        {},
-        [uid],
-        {
+        mutator_id=phone_address_mutator.id,
+        context={},
+        selector_values=[uid],
+        row_data={
             _PHONE_NUMBER_COLUMN_NAME: {
                 "value": "123-456-7890",
                 "purpose_additions": [
@@ -538,39 +597,43 @@ Main St", "locality":"Pleasantville"}]',
     )
 
     # now retrieve the user's info using the accessor with the right context
-    resolved = client.ExecuteAccessor(acc_support.id, {"team": "support_team"}, [uid])
+    resolved = client.ExecuteAccessor(
+        accessor_id=acc_support.id,
+        context={"team": "support_team"},
+        selector_values=[uid],
+    )
     # expect ['["XXX-XXX-7890","<home address hidden>"]']
     print(f"support context: user's details are {resolved}\n")
 
     resolved = client.ExecuteAccessor(
-        acc_security.id,
-        {"team": "security_team"},
-        ["%Evergreen%", "123-456-7890"],
+        accessor_id=acc_security.id,
+        context={"team": "security_team"},
+        selector_values=["%Evergreen%", "123-456-7890"],
     )
     # expect full details
     print(f"security context: user's details are {resolved}\n")
 
     resolved = client.ExecuteAccessor(
-        acc_marketing.id,
-        {"team": "marketing_team"},
-        [uid],
+        accessor_id=acc_marketing.id,
+        context={"team": "marketing_team"},
+        selector_values=[uid],
     )
     # expect [] (due to team mismatch in access policy)
     print(f"marketing context: user's details are {resolved}\n")
 
     resolved = client.ExecuteAccessor(
-        acc_logging.id,
-        {"team": "security_team"},
-        [uid],
+        accessor_id=acc_logging.id,
+        context={"team": "security_team"},
+        selector_values=[uid],
     )
     # expect to get back a token
     token = json.loads(resolved["data"][0])[_PHONE_NUMBER_COLUMN_NAME]
     print(f"user's phone token (first call) {token}\n")
 
     resolved = client.ExecuteAccessor(
-        acc_logging.id,
-        {"team": "security_team"},
-        [uid],
+        accessor_id=acc_logging.id,
+        context={"team": "security_team"},
+        selector_values=[uid],
     )
 
     # expect to get back the same token so it can be used in logs as a unique identifier if desired
@@ -592,14 +655,16 @@ def cleanup(
     acc_security: Accessor,
     acc_marketing: Accessor,
     acc_logging: Accessor,
-    mutator: Mutator,
+    phone_address_mutator: Mutator,
+    email_mutator: Mutator,
 ):
     # delete the accessors and mutators
     client.DeleteAccessor(acc_support.id)
     client.DeleteAccessor(acc_security.id)
     client.DeleteAccessor(acc_marketing.id)
     client.DeleteAccessor(acc_logging.id)
-    client.DeleteMutator(mutator.id)
+    client.DeleteMutator(phone_address_mutator.id)
+    client.DeleteMutator(email_mutator.id)
 
     # delete the created retention durations
     clean_retention_durations(client)
@@ -670,10 +735,33 @@ def clean_retention_durations(client: Client) -> None:
 def run_userstore_sample(client: Client) -> None:
     # set up the userstore with the right columns, policies, accessors, mutators,
     # and retention durations
-    acc_support, acc_security, acc_marketing, acc_logging, mutator = setup(client)
+    (
+        acc_support,
+        acc_security,
+        acc_marketing,
+        acc_logging,
+        phone_address_mutator,
+        email_mutator,
+    ) = setup(client)
     # run the example
-    example(client, acc_support, acc_security, acc_marketing, acc_logging, mutator)
-    cleanup(client, acc_support, acc_security, acc_marketing, acc_logging, mutator)
+    example(
+        client,
+        acc_support,
+        acc_security,
+        acc_marketing,
+        acc_logging,
+        phone_address_mutator,
+        email_mutator,
+    )
+    cleanup(
+        client,
+        acc_support,
+        acc_security,
+        acc_marketing,
+        acc_logging,
+        phone_address_mutator,
+        email_mutator,
+    )
 
 
 if __name__ == "__main__":
