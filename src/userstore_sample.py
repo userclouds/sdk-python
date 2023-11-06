@@ -61,12 +61,12 @@ def setup(client: Client):
     # illustrate CRUD for columns
     col = client.CreateColumn(
         Column(
-            None,
-            "temp_column",
-            DATA_TYPE_BOOLEAN,
-            False,
-            "",
-            COLUMN_INDEX_TYPE_NONE,
+            id=None,
+            name="temp_column",
+            type=DATA_TYPE_BOOLEAN,
+            is_array=False,
+            default_value="",
+            index_type=COLUMN_INDEX_TYPE_NONE,
         ),
         if_not_exists=True,
     )
@@ -79,31 +79,32 @@ def setup(client: Client):
     # create phone number and home address columns
     phone_number = client.CreateColumn(
         Column(
-            None,
-            _PHONE_NUMBER_COLUMN_NAME,
-            DATA_TYPE_STRING,
-            False,
-            "",
-            COLUMN_INDEX_TYPE_INDEXED,
+            id=None,
+            name=_PHONE_NUMBER_COLUMN_NAME,
+            type=DATA_TYPE_STRING,
+            is_array=False,
+            default_value="",
+            index_type=COLUMN_INDEX_TYPE_INDEXED,
         ),
         if_not_exists=True,
     )
 
     client.CreateColumn(
         Column(
-            None,
-            "home_addresses",
-            DATA_TYPE_ADDRESS,
-            True,
-            "",
-            COLUMN_INDEX_TYPE_NONE,
+            id=None,
+            name="home_addresses",
+            type=DATA_TYPE_ADDRESS,
+            is_array=True,
+            default_value="",
+            index_type=COLUMN_INDEX_TYPE_NONE,
         ),
         if_not_exists=True,
     )
 
     # illustrate CRUD for purposes
     purpose = client.CreatePurpose(
-        Purpose(None, "temp_purpose", "temp_purpose_description"), if_not_exists=True
+        Purpose(id=None, name="temp_purpose", description="temp_purpose_description"),
+        if_not_exists=True,
     )
     client.ListPurposes()
     purpose = client.GetPurpose(purpose.id)
@@ -114,27 +115,27 @@ def setup(client: Client):
     # create purposes for security, support and marketing
     security = client.CreatePurpose(
         Purpose(
-            None,
-            _SECURITY_PURPOSE_NAME,
-            "Allows access to the data in the columns for security purposes",
+            id=None,
+            name=_SECURITY_PURPOSE_NAME,
+            description="Allows access to the data in the columns for security purposes",
         ),
         if_not_exists=True,
     )
 
     support = client.CreatePurpose(
         Purpose(
-            None,
-            "support",
-            "Allows access to the data in the columns for support purposes",
+            id=None,
+            name="support",
+            description="Allows access to the data in the columns for support purposes",
         ),
         if_not_exists=True,
     )
 
     client.CreatePurpose(
         Purpose(
-            None,
-            "marketing",
-            "Allows access to the data in the columns for marketing purposes",
+            id=None,
+            name="marketing",
+            description="Allows access to the data in the columns for marketing purposes",
         ),
         if_not_exists=True,
     )
@@ -161,8 +162,8 @@ def setup(client: Client):
         ],
     )
     client.UpdateSoftDeletedRetentionDurationsOnColumn(
-        phone_number.id,
-        column_rd_update,
+        columnID=phone_number.id,
+        req=column_rd_update,
     )
 
     # retrieve and delete pre-existing default soft-deleted retention duration on tenant
@@ -259,28 +260,28 @@ function transform(data, params) {
 }"""
 
     support_phone_transformer = Transformer(
-        None,
-        "PIITransformerForSupport",
-        DATA_TYPE_STRING,
-        DATA_TYPE_STRING,
-        False,
-        TRANSFORM_TYPE_TRANSFORM,
-        phone_transformer_function,
-        '{"team": "support_team"}',
+        id=None,
+        name="PIITransformerForSupport",
+        input_type=DATA_TYPE_STRING,
+        output_type=DATA_TYPE_STRING,
+        reuse_existing_token=False,
+        transform_type=TRANSFORM_TYPE_TRANSFORM,
+        function=phone_transformer_function,
+        parameters='{"team": "support_team"}',
     )
     support_phone_transformer = client.CreateTransformer(
         support_phone_transformer, if_not_exists=True
     )
 
     security_phone_transformer = Transformer(
-        None,
-        "PIITransformerForSecurity",
-        DATA_TYPE_STRING,
-        DATA_TYPE_STRING,
-        False,
-        TRANSFORM_TYPE_TRANSFORM,
-        phone_transformer_function,
-        '{"team": "security_team"}',
+        id=None,
+        name="PIITransformerForSecurity",
+        input_type=DATA_TYPE_STRING,
+        output_type=DATA_TYPE_STRING,
+        reuse_existing_token=False,
+        transform_type=TRANSFORM_TYPE_TRANSFORM,
+        function=phone_transformer_function,
+        parameters='{"team": "security_team"}',
     )
     security_phone_transformer = client.CreateTransformer(
         security_phone_transformer, if_not_exists=True
@@ -310,14 +311,14 @@ function id(len) {
 }"""
 
     logging_phone_transformer = Transformer(
-        None,
-        "PIITransformerForLogging",
-        DATA_TYPE_STRING,
-        DATA_TYPE_STRING,
-        True,  # Set this is to false to get a unique token every time this transformer is called vs getting same token on every call
-        TRANSFORM_TYPE_TOKENIZE_BY_VALUE,
-        phone_tokenizing_transformer_function,
-        '{"team": "security_team"}',
+        id=None,
+        name="PIITransformerForLogging",
+        input_type=DATA_TYPE_STRING,
+        output_type=DATA_TYPE_STRING,
+        reuse_existing_token=True,  # Set this is to false to get a unique token every time this transformer is called vs getting same token on every call
+        transform_type=TRANSFORM_TYPE_TOKENIZE_BY_VALUE,
+        function=phone_tokenizing_transformer_function,
+        parameters='{"team": "security_team"}',
     )
 
     logging_phone_transformer = client.CreateTransformer(
@@ -335,10 +336,10 @@ function id(len) {
     # team
 
     acc_support = Accessor(
-        None,
-        "PIIAccessor-SupportTeam",
-        "Accessor for support team",
-        [
+        id=None,
+        name="PIIAccessor-SupportTeam",
+        description="Accessor for support team",
+        columns=[
             ColumnOutputConfig(
                 column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 transformer=ResourceID(id=support_phone_transformer.id),
@@ -356,9 +357,9 @@ function id(len) {
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
         ],
-        ResourceID(id=ap.id),
-        UserSelectorConfig("{id} = ?"),
-        [ResourceID(name="support")],
+        access_policy=ResourceID(id=ap.id),
+        selector_config=UserSelectorConfig("{id} = ?"),
+        purposes=[ResourceID(name="support")],
     )
     acc_support = client.CreateAccessor(acc_support, if_not_exists=True)
 
@@ -371,10 +372,10 @@ function id(len) {
     client.ListAccessors()
 
     acc_security = Accessor(
-        None,
-        "PIIAccessor-SecurityTeam",
-        "Accessor for security team",
-        [
+        id=None,
+        name="PIIAccessor-SecurityTeam",
+        description="Accessor for security team",
+        columns=[
             ColumnOutputConfig(
                 column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 transformer=ResourceID(id=security_phone_transformer.id),
@@ -392,20 +393,20 @@ function id(len) {
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
         ],
-        ResourceID(id=ap.id),
-        UserSelectorConfig(
+        access_policy=ResourceID(id=ap.id),
+        selector_config=UserSelectorConfig(
             "{home_addresses}->>'street_address_line_1' LIKE (?) AND "
             + "{phone_number} = (?)"
         ),
-        [_SECURITY_PURPOSE_RESOURCE_ID],
+        purposes=[_SECURITY_PURPOSE_RESOURCE_ID],
     )
     acc_security = client.CreateAccessor(acc_security, if_not_exists=True)
 
     acc_marketing = Accessor(
-        None,
-        "PIIAccessor-MarketingTeam",
-        "Accessor for marketing team",
-        [
+        id=None,
+        name="PIIAccessor-MarketingTeam",
+        description="Accessor for marketing team",
+        columns=[
             ColumnOutputConfig(
                 column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 transformer=ResourceID(id=TransformerPassThrough.id),
@@ -423,26 +424,26 @@ function id(len) {
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
         ],
-        ResourceID(id=AccessPolicyOpen.id),
-        UserSelectorConfig("{id} = ?"),
-        [_SECURITY_PURPOSE_RESOURCE_ID],
+        access_policy=ResourceID(id=AccessPolicyOpen.id),
+        selector_config=UserSelectorConfig("{id} = ?"),
+        purposes=[_SECURITY_PURPOSE_RESOURCE_ID],
     )
     acc_marketing = client.CreateAccessor(acc_marketing, if_not_exists=True)
 
     acc_logging = Accessor(
-        None,
-        "PhoneTokenAccessorForSecurityTeam",
-        "Accessor for getting phone number token for security team",
-        [
+        id=None,
+        name="PhoneTokenAccessorForSecurityTeam",
+        description="Accessor for getting phone number token for security team",
+        columns=[
             ColumnOutputConfig(
                 column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 transformer=ResourceID(id=logging_phone_transformer.id),
             ),
         ],
-        ResourceID(id=AccessPolicyOpen.id),
-        UserSelectorConfig("{id} = ?"),
-        [_SECURITY_PURPOSE_RESOURCE_ID],
-        ResourceID(id=AccessPolicyOpen.id),
+        access_policy=ResourceID(id=AccessPolicyOpen.id),
+        selector_config=UserSelectorConfig("{id} = ?"),
+        purposes=[_SECURITY_PURPOSE_RESOURCE_ID],
+        token_access_policy=ResourceID(id=AccessPolicyOpen.id),
     )
     acc_logging = client.CreateAccessor(acc_logging, if_not_exists=True)
 
@@ -451,10 +452,10 @@ function id(len) {
     # (getters). Here we create mutator to update the user's phone number and home
     # address.
     mutator = Mutator(
-        None,
-        "PhoneAndAddressMutator",
-        "Mutator for updating phone number and home address",
-        [
+        id=None,
+        name="PhoneAndAddressMutator",
+        description="Mutator for updating phone number and home address",
+        columns=[
             ColumnInputConfig(
                 column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 validator=ResourceID(id=ValidatorOpen.id),
@@ -464,8 +465,8 @@ function id(len) {
                 validator=ResourceID(id=ValidatorOpen.id),
             ),
         ],
-        ResourceID(id=AccessPolicyOpen.id),
-        UserSelectorConfig("{id} = ?"),
+        access_policy=ResourceID(id=AccessPolicyOpen.id),
+        selector_config=UserSelectorConfig("{id} = ?"),
     )
     mutator = client.CreateMutator(mutator, if_not_exists=True)
     # illustrate updating, getting, and listing mutators
