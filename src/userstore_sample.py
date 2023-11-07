@@ -60,7 +60,7 @@ _EMAIL_COLUMN_NAME = "email"
 _EMAIL_COLUMN_RESOURCE_ID = ResourceID(name=_EMAIL_COLUMN_NAME)
 
 
-def setup(client: Client):
+def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
     # illustrate CRUD for columns
     col = client.CreateColumn(
         Column(
@@ -510,27 +510,27 @@ function id(len) {
         selector_config=UserSelectorConfig("{id} = ?"),
     )
     email_mutator = client.CreateMutator(email_mutator, if_not_exists=True)
-
-    return (
-        acc_support,
-        acc_security,
-        acc_marketing,
-        acc_logging,
+    return (acc_support, acc_security, acc_marketing, acc_logging), (
         phone_address_mutator,
         email_mutator,
     )
 
 
 def example(
-    client: Client,
-    acc_support: Accessor,
-    acc_security: Accessor,
-    acc_marketing: Accessor,
-    acc_logging: Accessor,
-    phone_address_mutator: Mutator,
-    email_mutator: Mutator,
-):
+    client: Client, accessors: tuple[Accessor, ...], mutators: tuple[Mutator, ...]
+) -> None:
     email = "me@example.org"
+    assert len(accessors) == 4
+    assert len(mutators) == 2
+    phone_address_mutator, email_mutator = mutators
+    acc_support, acc_security, acc_marketing, acc_logging = accessors
+    # Just make sure we unpacked stuff correctly
+    assert phone_address_mutator.name == "PhoneAndAddressMutator"
+    assert email_mutator.name == "EmailMutator"
+    assert acc_support.name == "PIIAccessor-SupportTeam"
+    assert acc_security.name == "PIIAccessor-SecurityTeam"
+    assert acc_marketing.name == "PIIAccessor-MarketingTeam"
+    assert acc_logging.name == "PhoneTokenAccessorForSecurityTeam"
 
     # delete any existing test users with the email address for their AuthN
     users = client.ListUsers(email=email)
@@ -651,20 +651,16 @@ Main St", "locality":"Pleasantville"}]',
 
 def cleanup(
     client: Client,
-    acc_support: Accessor,
-    acc_security: Accessor,
-    acc_marketing: Accessor,
-    acc_logging: Accessor,
-    phone_address_mutator: Mutator,
-    email_mutator: Mutator,
+    accessors: tuple[Accessor, ...],
+    mutators: tuple[Mutator, ...],
 ):
     # delete the accessors and mutators
-    client.DeleteAccessor(acc_support.id)
-    client.DeleteAccessor(acc_security.id)
-    client.DeleteAccessor(acc_marketing.id)
-    client.DeleteAccessor(acc_logging.id)
-    client.DeleteMutator(phone_address_mutator.id)
-    client.DeleteMutator(email_mutator.id)
+    for acs in accessors:
+        if not client.DeleteAccessor(acs.id):
+            warnings.warn(f"Failed to delete accessor - {acs.id=} - {acs.name=}")
+    for mutator in mutators:
+        if not client.DeleteMutator(mutator.id):
+            warnings.warn(f"Failed to delete mutator - {mutator.id=} - {mutator.name=}")
 
     # delete the created retention durations
     clean_retention_durations(client)
@@ -735,33 +731,10 @@ def clean_retention_durations(client: Client) -> None:
 def run_userstore_sample(client: Client) -> None:
     # set up the userstore with the right columns, policies, accessors, mutators,
     # and retention durations
-    (
-        acc_support,
-        acc_security,
-        acc_marketing,
-        acc_logging,
-        phone_address_mutator,
-        email_mutator,
-    ) = setup(client)
+    accessors, mutators = setup(client)
     # run the example
-    example(
-        client,
-        acc_support,
-        acc_security,
-        acc_marketing,
-        acc_logging,
-        phone_address_mutator,
-        email_mutator,
-    )
-    cleanup(
-        client,
-        acc_support,
-        acc_security,
-        acc_marketing,
-        acc_logging,
-        phone_address_mutator,
-        email_mutator,
-    )
+    example(client, accessors, mutators)
+    cleanup(client, accessors, mutators)
 
 
 if __name__ == "__main__":
