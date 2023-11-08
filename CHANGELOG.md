@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 - 08-11-2023
+
+- Bring back passing kwargs to the HTTP client methods.
+
 ## 1.1.0 -- 08-11-2023
 
 - Add CreateUserWithMutator method to Python SDK Client and example for how to use in userstore_sample.py

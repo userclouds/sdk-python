@@ -80,7 +80,7 @@ def read_env(name: str, desc: str) -> str:
     return value
 
 
-def create_http_client(url: str, **kwargs):
+def create_http_client(url: str, **kwargs) -> httpx.Client:
     return httpx.Client(base_url=url, **kwargs)
 
 
@@ -114,6 +114,10 @@ class Client:
             )
         ).decode("ascii")
         self._client = client_factory(url, **kwargs)
+        kwargs.pop(
+            "verify", None
+        )  # Remove verify from kwargs since it is not compatible with httpx request methods (get, post, etc...)
+        self._request_kwargs = kwargs
         self._access_token: str | None = None  # lazy loaded
 
     # User Operations
@@ -951,6 +955,7 @@ class Client:
             "/oidc/token",
             headers=headers,
             data=body,
+            **self._request_kwargs,
         )
         if resp.status_code >= 400:
             raise Error.from_response(resp)
@@ -981,28 +986,36 @@ class Client:
 
     def _get(self, url, **kwargs) -> dict:
         self._refresh_access_token_if_needed()
-        resp = self._client.get(url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        resp = self._client.get(url, headers=self._get_headers(), **args)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
     def _post(self, url, **kwargs) -> dict | list:
         self._refresh_access_token_if_needed()
-        resp = self._client.post(url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        resp = self._client.post(url, headers=self._get_headers(), **args)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
     def _put(self, url, **kwargs) -> dict | list:
         self._refresh_access_token_if_needed()
-        resp = self._client.put(url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        resp = self._client.put(url, headers=self._get_headers(), **args)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
     def _delete(self, url, **kwargs) -> bool:
         self._refresh_access_token_if_needed()
-        resp = self._client.delete(url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        resp = self._client.delete(url, headers=self._get_headers(), **args)
 
         if resp.status_code == 404:
             return False
@@ -1013,7 +1026,9 @@ class Client:
 
     def _download(self, url, **kwargs) -> str:
         self._refresh_access_token_if_needed()
-        resp = self._client.get(url, headers=self._get_headers(), **kwargs)
+        args = self._request_kwargs.copy()
+        args.update(kwargs)
+        resp = self._client.get(url, headers=self._get_headers(), **args)
         return resp.text
 
 
