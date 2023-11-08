@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 -- TBD
+## 1.1.0 -- 08-11-2023
 
 - Add CreateUserWithMutator method to Python SDK Client and example for how to use in userstore_sample.py
 
