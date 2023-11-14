@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 - UNPUBLISHED
+
+- Cleanup httpx client usage.
+  This is a breaking change to the HTTP client interface since we stopped passing the deprecated `data` argument to the httpx client methods (PUT & POST) and pass the `content` argument instead.
+
 ## 1.1.1 - 08-11-2023
 
 - Bring back passing kwargs to the HTTP client methods.

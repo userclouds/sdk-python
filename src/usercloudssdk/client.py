@@ -36,6 +36,8 @@ from .models import (
     UserResponse,
 )
 
+_JSON_CONTENT_TYPE = "application/json"
+
 
 class Error(Exception):
     def __init__(
@@ -85,7 +87,7 @@ def create_http_client(url: str, **kwargs) -> httpx.Client:
 
 
 def _is_json(resp) -> bool:
-    return resp.headers.get("Content-Type") == "application/json"
+    return resp.headers.get("Content-Type") == _JSON_CONTENT_TYPE
 
 
 class Client:
@@ -125,7 +127,8 @@ class Client:
     # AuthN user methods (shouldn't be used by UserStore customers)
 
     def CreateUser(self) -> uuid.UUID:
-        resp_json = self._post("/authn/users", data=ucjson.dumps({}))
+        # TODO: this is weird server behavior, the body is effectively empty, but if we don't specify a body (content) at all the request will fail.
+        resp_json = self._post("/authn/users", json_data={})
         return resp_json.get("id")
 
     def CreateUserWithPassword(self, username: str, password: str) -> uuid.UUID:
@@ -135,7 +138,7 @@ class Client:
             "authn_type": AUTHN_TYPE_PASSWORD,
         }
 
-        resp_json = self._post("/authn/users", data=ucjson.dumps(body))
+        resp_json = self._post("/authn/users", json_data=body)
         return resp_json.get("id")
 
     def ListUsers(
@@ -162,8 +165,7 @@ class Client:
         return UserResponse.from_json(resp_json)
 
     def UpdateUser(self, id: uuid.UUID, profile: dict) -> UserResponse:
-        body = {"profile": profile}
-        resp_json = self._put(f"/authn/users/{id}", data=ucjson.dumps(body))
+        resp_json = self._put(f"/authn/users/{id}", json_data={"profile": profile})
         return UserResponse.from_json(resp_json)
 
     def DeleteUser(self, id: uuid.UUID) -> bool:
@@ -184,16 +186,15 @@ class Client:
             "row_data": row_data,
             "organization_id": organization_id,
         }
-
-        j = self._post("/userstore/api/users", data=ucjson.dumps(body))
-        return j
+        return self._post("/userstore/api/users", json_data=body)
 
     # Column Operations
 
     def CreateColumn(self, column: Column, if_not_exists=False) -> Column:
-        body = {"column": column.__dict__}
         try:
-            resp_json = self._post("/userstore/config/columns", data=ucjson.dumps(body))
+            resp_json = self._post(
+                "/userstore/config/columns", json_data={"column": column.__dict__}
+            )
             return Column.from_json(resp_json)
         except Error as err:
             if if_not_exists:
@@ -222,21 +223,18 @@ class Client:
         return columns
 
     def UpdateColumn(self, column: Column) -> Column:
-        body = {"column": column.__dict__}
-
         resp_json = self._put(
-            f"/userstore/config/columns/{column.id}", data=ucjson.dumps(body)
+            f"/userstore/config/columns/{column.id}",
+            json_data={"column": column.__dict__},
         )
         return Column.from_json(resp_json)
 
     # Purpose Operations
 
     def CreatePurpose(self, purpose: Purpose, if_not_exists=False) -> Purpose:
-        body = {"purpose": purpose.__dict__}
-
         try:
             resp_json = self._post(
-                "/userstore/config/purposes", data=ucjson.dumps(body)
+                "/userstore/config/purposes", json_data={"purpose": purpose.__dict__}
             )
             return Purpose.from_json(resp_json)
         except Error as err:
@@ -266,10 +264,9 @@ class Client:
         return purposes
 
     def UpdatePurpose(self, purpose: Purpose) -> Purpose:
-        body = {"purpose": purpose.__dict__}
-
         resp_json = self._put(
-            f"/userstore/config/purposes/{purpose.id}", data=ucjson.dumps(body)
+            f"/userstore/config/purposes/{purpose.id}",
+            json_data={"purpose": purpose.__dict__},
         )
         return Purpose.from_json(resp_json)
 
@@ -289,7 +286,7 @@ class Client:
         self, req: UpdateColumnRetentionDurationRequest
     ) -> ColumnRetentionDurationResponse:
         resp = self._post(
-            "/userstore/config/softdeletedretentiondurations", data=req.to_json()
+            "/userstore/config/softdeletedretentiondurations", json_data=req.to_json()
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
@@ -321,7 +318,7 @@ class Client:
     ) -> ColumnRetentionDurationResponse:
         resp = self._put(
             f"/userstore/config/softdeletedretentiondurations/{durationID}",
-            req.to_json(),
+            json_data=req.to_json(),
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
@@ -338,7 +335,7 @@ class Client:
     ) -> ColumnRetentionDurationResponse:
         resp = self._post(
             f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations",
-            data=req.to_json(),
+            json_data=req.to_json(),
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
@@ -377,7 +374,7 @@ class Client:
     ) -> ColumnRetentionDurationResponse:
         resp = self._put(
             f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations/{durationID}",
-            req.to_json(),
+            json_data=req.to_json(),
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
@@ -422,7 +419,7 @@ class Client:
     ) -> ColumnRetentionDurationResponse:
         resp = self._put(
             f"/userstore/config/columns/{columnID}/softdeletedretentiondurations/{durationID}",
-            req.to_json(),
+            json_data=req.to_json(),
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
@@ -433,7 +430,7 @@ class Client:
     ) -> ColumnRetentionDurationsResponse:
         resp = self._post(
             f"/userstore/config/columns/{columnID}/softdeletedretentiondurations",
-            data=req.to_json(),
+            json_data=req.to_json(),
         )
         return ColumnRetentionDurationsResponse.from_json(resp)
 
@@ -442,11 +439,10 @@ class Client:
     def CreateAccessPolicyTemplate(
         self, access_policy_template: AccessPolicyTemplate, if_not_exists=False
     ) -> AccessPolicyTemplate | Error:
-        body = {"access_policy_template": access_policy_template.__dict__}
-
         try:
             resp_json = self._post(
-                "/tokenizer/policies/accesstemplate", data=ucjson.dumps(body)
+                "/tokenizer/policies/accesstemplate",
+                json_data={"access_policy_template": access_policy_template.__dict__},
             )
             return AccessPolicyTemplate.from_json(resp_json)
         except Error as err:
@@ -478,11 +474,9 @@ class Client:
         return AccessPolicyTemplate.from_json(resp_json)
 
     def UpdateAccessPolicyTemplate(self, access_policy_template: AccessPolicyTemplate):
-        body = {"access_policy_template": access_policy_template.__dict__}
-
         resp_json = self._put(
             f"/tokenizer/policies/accesstemplate/{access_policy_template.id}",
-            data=ucjson.dumps(body),
+            json_data={"access_policy_template": access_policy_template.__dict__},
         )
         return AccessPolicyTemplate.from_json(resp_json)
 
@@ -497,11 +491,10 @@ class Client:
     def CreateAccessPolicy(
         self, access_policy: AccessPolicy, if_not_exists=False
     ) -> AccessPolicy | Error:
-        body = {"access_policy": access_policy.__dict__}
-
         try:
             resp_json = self._post(
-                "/tokenizer/policies/access", data=ucjson.dumps(body)
+                "/tokenizer/policies/access",
+                json_data={"access_policy": access_policy.__dict__},
             )
             return AccessPolicy.from_json(resp_json)
         except Error as err:
@@ -533,11 +526,9 @@ class Client:
         return AccessPolicy.from_json(resp_json)
 
     def UpdateAccessPolicy(self, access_policy: AccessPolicy):
-        body = {"access_policy": access_policy.__dict__}
-
         resp_json = self._put(
             f"/tokenizer/policies/access/{access_policy.id}",
-            data=ucjson.dumps(body),
+            json_data={"access_policy": access_policy.__dict__},
         )
         return AccessPolicy.from_json(resp_json)
 
@@ -550,11 +541,10 @@ class Client:
     # Transformers
 
     def CreateTransformer(self, transformer: Transformer, if_not_exists=False):
-        body = {"transformer": transformer.__dict__}
-
         try:
             resp_json = self._post(
-                "/tokenizer/policies/transformation", data=ucjson.dumps(body)
+                "/tokenizer/policies/transformation",
+                json_data={"transformer": transformer.__dict__},
             )
             return Transformer.from_json(resp_json)
         except Error as err:
@@ -582,11 +572,9 @@ class Client:
     # Accessor Operations
 
     def CreateAccessor(self, accessor: Accessor, if_not_exists=False) -> Accessor:
-        body = {"accessor": accessor.__dict__}
-
         try:
             resp_json = self._post(
-                "/userstore/config/accessors", data=ucjson.dumps(body)
+                "/userstore/config/accessors", json_data={"accessor": accessor.__dict__}
             )
             return Accessor.from_json(resp_json)
         except Error as err:
@@ -617,11 +605,9 @@ class Client:
         return accessors
 
     def UpdateAccessor(self, accessor: Accessor) -> Accessor:
-        body = {"accessor": accessor.__dict__}
-
         resp_json = self._put(
             f"/userstore/config/accessors/{accessor.id}",
-            data=ucjson.dumps(body),
+            json_data={"accessor": accessor.__dict__},
         )
         return Accessor.from_json(resp_json)
 
@@ -633,17 +619,16 @@ class Client:
             "context": context,
             "selector_values": selector_values,
         }
-
-        return self._post("/userstore/api/accessors", data=ucjson.dumps(body))
+        return self._post("/userstore/api/accessors", json_data=body)
 
     # Mutator Operations
 
     def CreateMutator(self, mutator: Mutator, if_not_exists=False) -> Mutator:
-        body = {"mutator": mutator.__dict__}
-
         try:
-            j = self._post("/userstore/config/mutators", data=ucjson.dumps(body))
-            return Mutator.from_json(j)
+            resp_json = self._post(
+                "/userstore/config/mutators", json_data={"mutator": mutator.__dict__}
+            )
+            return Mutator.from_json(resp_json)
         except Error as e:
             if if_not_exists:
                 mutator.id = _id_from_identical_conflict(e)
@@ -654,8 +639,8 @@ class Client:
         return self._delete(f"/userstore/config/mutators/{id}")
 
     def GetMutator(self, id: uuid.UUID) -> Mutator:
-        j = self._get(f"/userstore/config/mutators/{id}")
-        return Mutator.from_json(j)
+        resp_json = self._get(f"/userstore/config/mutators/{id}")
+        return Mutator.from_json(resp_json)
 
     def ListMutators(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
@@ -672,13 +657,11 @@ class Client:
         return mutators
 
     def UpdateMutator(self, mutator: Mutator) -> Mutator:
-        body = {"mutator": mutator.__dict__}
-
-        j = self._put(
+        json_resp = self._put(
             f"/userstore/config/mutators/{mutator.id}",
-            data=ucjson.dumps(body),
+            json_data={"mutator": mutator.__dict__},
         )
-        return Mutator.from_json(j)
+        return Mutator.from_json(json_resp)
 
     def ExecuteMutator(
         self,
@@ -694,7 +677,7 @@ class Client:
             "row_data": row_data,
         }
 
-        j = self._post("/userstore/api/mutators", data=ucjson.dumps(body))
+        j = self._post("/userstore/api/mutators", json_data=body)
         return j
 
     # Token Operations
@@ -711,7 +694,7 @@ class Client:
             "access_policy_rid": access_policy_rid.__dict__,
         }
 
-        json_resp = self._post("/tokenizer/tokens", data=ucjson.dumps(body))
+        json_resp = self._post("/tokenizer/tokens", json_data=body)
         return json_resp["data"]
 
     def LookupOrCreateTokens(
@@ -726,9 +709,7 @@ class Client:
             "access_policy_rids": [asdict(a) for a in access_policies],
         }
 
-        j = self._post(
-            "/tokenizer/tokens/actions/lookuporcreate", data=ucjson.dumps(body)
-        )
+        j = self._post("/tokenizer/tokens/actions/lookuporcreate", json_data=body)
         return j["tokens"]
 
     def ResolveTokens(
@@ -736,7 +717,7 @@ class Client:
     ) -> list[str]:
         body = {"tokens": tokens, "context": context, "purposes": purposes}
 
-        j = self._post("/tokenizer/tokens/actions/resolve", data=ucjson.dumps(body))
+        j = self._post("/tokenizer/tokens/actions/resolve", json_data=body)
         return j
 
     def DeleteToken(self, token: str) -> bool:
@@ -745,7 +726,7 @@ class Client:
     def InspectToken(self, token: str) -> InspectTokenResponse:
         body = {"token": token}
 
-        j = self._post("/tokenizer/tokens/actions/inspect", data=ucjson.dumps(body))
+        j = self._post("/tokenizer/tokens/actions/inspect", json_data=body)
         return InspectTokenResponse.from_json(j)
 
     def LookupToken(
@@ -760,7 +741,7 @@ class Client:
             "access_policy_rid": access_policy_rid.__dict__,
         }
 
-        j = self._post("/tokenizer/tokens/actions/lookup", data=ucjson.dumps(body))
+        j = self._post("/tokenizer/tokens/actions/lookup", json_data=body)
         return j["tokens"]
 
     # AuthZ Operations
@@ -783,7 +764,7 @@ class Client:
         body = object.__dict__
 
         try:
-            j = self._post("/authz/objects", data=ucjson.dumps(body))
+            j = self._post("/authz/objects", json_data=body)
             return Object.from_json(j)
         except Error as e:
             if if_not_exists:
@@ -816,7 +797,7 @@ class Client:
         body = edge.__dict__
 
         try:
-            j = self._post("/authz/edges", data=ucjson.dumps(body))
+            j = self._post("/authz/edges", json_data=body)
             return Edge.from_json(j)
         except Error as e:
             if if_not_exists:
@@ -851,7 +832,7 @@ class Client:
         body = object_type.__dict__
 
         try:
-            j = self._post("/authz/objecttypes", data=ucjson.dumps(body))
+            j = self._post("/authz/objecttypes", json_data=body)
             return ObjectType.from_json(j)
         except Error as e:
             if if_not_exists:
@@ -884,7 +865,7 @@ class Client:
         body = edge_type.__dict__
 
         try:
-            j = self._post("/authz/edgetypes", data=ucjson.dumps(body))
+            j = self._post("/authz/edgetypes", json_data=body)
             return EdgeType.from_json(j)
         except Error as e:
             if if_not_exists:
@@ -915,7 +896,7 @@ class Client:
 
     def CreateOrganization(self, organization: Organization) -> Organization:
         body = organization.__dict__
-        json_data = self._post("/authz/organizations", data=ucjson.dumps(body))
+        json_data = self._post("/authz/organizations", json_data=body)
         return Organization.from_json(json_data)
 
     def GetOrganization(self, id: uuid.UUID) -> Organization:
@@ -984,37 +965,46 @@ class Client:
 
     # Request Helpers
 
-    def _get(self, url, **kwargs) -> dict:
+    def _get(self, url, params: dict[str, str | int] | None = None) -> dict:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
-        args.update(kwargs)
+        if params:
+            args["params"] = params
         resp = self._client.get(url, headers=self._get_headers(), **args)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
-    def _post(self, url, **kwargs) -> dict | list:
+    def _prep_json_data(self, json_data: dict | str | None) -> tuple(dict, dict):
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
-        args.update(kwargs)
-        resp = self._client.post(url, headers=self._get_headers(), **args)
+        headers = self._get_headers()
+        if json_data is not None:
+            headers["Content-Type"] = _JSON_CONTENT_TYPE
+            args["content"] = (
+                json_data if isinstance(json_data, str) else ucjson.dumps(json_data)
+            )
+        return args, headers
+
+    def _post(self, url, json_data: dict | str | None = None) -> dict | list:
+        args, headers = self._prep_json_data(json_data)
+        resp = self._client.post(url, headers=headers, **args)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
-    def _put(self, url, **kwargs) -> dict | list:
-        self._refresh_access_token_if_needed()
-        args = self._request_kwargs.copy()
-        args.update(kwargs)
-        resp = self._client.put(url, headers=self._get_headers(), **args)
+    def _put(self, url, json_data: dict | str | None = None) -> dict | list:
+        args, headers = self._prep_json_data(json_data)
+        resp = self._client.put(url, headers=headers, **args)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
-    def _delete(self, url, **kwargs) -> bool:
+    def _delete(self, url, params: dict[str, str | int] | None = None) -> bool:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
-        args.update(kwargs)
+        if params:
+            args["params"] = params
         resp = self._client.delete(url, headers=self._get_headers(), **args)
 
         if resp.status_code == 404:
@@ -1024,10 +1014,9 @@ class Client:
             raise Error.from_response(resp)
         return resp.status_code == 204
 
-    def _download(self, url, **kwargs) -> str:
+    def _download(self, url) -> str:
         self._refresh_access_token_if_needed()
         args = self._request_kwargs.copy()
-        args.update(kwargs)
         resp = self._client.get(url, headers=self._get_headers(), **args)
         return resp.text
 

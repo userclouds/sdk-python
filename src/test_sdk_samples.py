@@ -6,9 +6,9 @@ from userstore_sample import run_userstore_sample
 
 
 class TestSDKSamples:
-    @pytest.fixture
-    def ucclient(self) -> Client:
-        return Client.from_env()
+    @pytest.fixture(params=[{}, {"timeout": 5}])
+    def ucclient(self, request) -> Client:
+        return Client.from_env(**request.param)
 
     def test_authz(self, ucclient: Client) -> None:
         run_authz_sample(ucclient)
