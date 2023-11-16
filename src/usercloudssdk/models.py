@@ -39,7 +39,13 @@ class UserResponse:
     profile: dict
     organization_id: uuid.UUID
 
-    def __init__(self, id, updated_at, profile, organization_id):
+    def __init__(
+        self,
+        id: uuid.UUID,
+        updated_at: datetime.datetime,
+        profile: dict,
+        organization_id: uuid.UUID,
+    ) -> None:
         self.id = id
         self.updated_at = updated_at
         self.profile = profile
@@ -56,19 +62,19 @@ class UserResponse:
         )
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> UserResponse:
         return cls(
-            uuid.UUID(json_data["id"]),
-            datetime.datetime.fromtimestamp(json_data["updated_at"]),
-            json_data["profile"],
-            uuid.UUID(json_data["organization_id"]),
+            id=uuid.UUID(json_data["id"]),
+            updated_at=datetime.datetime.fromtimestamp(json_data["updated_at"]),
+            profile=json_data["profile"],
+            organization_id=uuid.UUID(json_data["organization_id"]),
         )
 
 
 class UserSelectorConfig:
     where_clause: str
 
-    def __init__(self, where_clause):
+    def __init__(self, where_clause: str) -> None:
         self.where_clause = where_clause
 
     def to_json(self) -> str:
@@ -80,13 +86,13 @@ class UserSelectorConfig:
 
 
 class ResourceID:
-    def __init__(self, id="", name=""):
+    def __init__(self, id="", name="") -> None:
         if id != "":
             setattr(self, "id", id)
         if name != "":
             setattr(self, "name", name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if hasattr(self, "id"):
             return f"ResourceID({self.id})"
         elif hasattr(self, "name"):
@@ -94,7 +100,7 @@ class ResourceID:
         else:
             return "ResourceID()"
 
-    def isValid(self):
+    def isValid(self) -> bool:
         return hasattr(self, "id") or hasattr(self, "name")
 
     @classmethod
@@ -110,7 +116,15 @@ class Column:
     default_value: str
     index_type: str
 
-    def __init__(self, id, name, type, is_array, default_value, index_type):
+    def __init__(
+        self,
+        id: uuid.UUID,
+        name: str,
+        type: str,
+        is_array: bool,
+        default_value: str,
+        index_type: str,
+    ) -> None:
         self.id = id
         self.name = name
         self.type = type
@@ -147,7 +161,7 @@ class Purpose:
     name: str
     description: str
 
-    def __init__(self, id, name, description):
+    def __init__(self, id: uuid.UUID, name: str, description: str) -> None:
         self.id = id
         self.name = name
         self.description = description
@@ -158,9 +172,11 @@ class Purpose:
         )
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> Purpose:
         return cls(
-            uuid.UUID(json_data["id"]), json_data["name"], json_data["description"]
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            description=json_data["description"],
         )
 
 
@@ -168,15 +184,15 @@ class ColumnOutputConfig:
     column: ResourceID
     transformer: ResourceID
 
-    def __init__(self, column, transformer):
+    def __init__(self, column: ResourceID, transformer: ResourceID) -> None:
         self.column = column
         self.transformer = transformer
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> ColumnOutputConfig:
         return ColumnOutputConfig(
-            ResourceID.from_json(json_data["column"]),
-            ResourceID.from_json(json_data["transformer"]),
+            column=ResourceID.from_json(json_data["column"]),
+            transformer=ResourceID.from_json(json_data["transformer"]),
         )
 
 
@@ -186,23 +202,23 @@ class Accessor:
     description: str
     columns: list[ColumnOutputConfig]
     access_policy: ResourceID
-    token_access_policy: ResourceID
+    token_access_policy: ResourceID | None
     selector_config: UserSelectorConfig
     purposes: list[ResourceID]
     version: int
 
     def __init__(
         self,
-        id,
-        name,
-        description,
-        columns,
-        access_policy,
-        selector_config,
-        purposes,
-        token_access_policy=None,
-        version=0,
-    ):
+        id: uuid.UUID,
+        name: str,
+        description: str,
+        columns: list[ColumnOutputConfig],
+        access_policy: ResourceID,
+        selector_config: UserSelectorConfig,
+        purposes: list[ResourceID],
+        token_access_policy: ResourceID | None = None,
+        version: int = 0,
+    ) -> None:
         self.id = id
         self.name = name
         self.description = description
@@ -229,33 +245,36 @@ class Accessor:
         )
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> Accessor:
         return cls(
-            uuid.UUID(json_data["id"]),
-            json_data["name"],
-            json_data["description"],
-            json_data["columns"],
-            ResourceID.from_json(json_data["access_policy"]),
-            UserSelectorConfig.from_json(json_data["selector_config"]),
-            json_data["purposes"],
-            ResourceID.from_json(json_data["token_access_policy"]),
-            json_data["version"],
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            description=json_data["description"],
+            columns=json_data["columns"],
+            access_policy=ResourceID.from_json(json_data["access_policy"]),
+            selector_config=UserSelectorConfig.from_json(json_data["selector_config"]),
+            purposes=json_data["purposes"],
+            token_access_policy=ResourceID.from_json(json_data["token_access_policy"]),
+            version=json_data["version"],
         )
+
+    def __str__(self) -> str:
+        return f"Accessor - {self.name} - {self.id}"
 
 
 class ColumnInputConfig:
     column: ResourceID
     validator: ResourceID
 
-    def __init__(self, column, validator):
+    def __init__(self, column: ResourceID, validator: ResourceID) -> None:
         self.column = column
         self.validator = validator
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> ColumnInputConfig:
         return cls(
-            ResourceID.from_json(json_data["column"]),
-            ResourceID.from_json(json_data["validator"]),
+            column=ResourceID.from_json(json_data["column"]),
+            validator=ResourceID.from_json(json_data["validator"]),
         )
 
 
@@ -270,14 +289,14 @@ class Mutator:
 
     def __init__(
         self,
-        id,
-        name,
-        description,
-        columns,
-        access_policy,
-        selector_config,
-        version=0,
-    ):
+        id: uuid.UUID,
+        name: str,
+        description: str,
+        columns: list[ColumnInputConfig],
+        access_policy: ResourceID,
+        selector_config: UserSelectorConfig,
+        version: int = 0,
+    ) -> None:
         self.id = id
         self.name = name
         self.description = description
@@ -300,16 +319,19 @@ class Mutator:
         )
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> Mutator:
         return cls(
-            uuid.UUID(json_data["id"]),
-            json_data["name"],
-            json_data["description"],
-            json_data["columns"],
-            ResourceID.from_json(json_data["access_policy"]),
-            UserSelectorConfig.from_json(json_data["selector_config"]),
-            json_data["version"],
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            description=json_data["description"],
+            columns=json_data["columns"],
+            access_policy=ResourceID.from_json(json_data["access_policy"]),
+            selector_config=UserSelectorConfig.from_json(json_data["selector_config"]),
+            version=json_data["version"],
         )
+
+    def __str__(self) -> str:
+        return f"mutator {self.name} - {self.id}"
 
 
 class AccessPolicyTemplate:
@@ -326,14 +348,14 @@ class AccessPolicyTemplate:
         description="",
         function="",
         version=0,
-    ):
+    ) -> None:
         self.id = id
         self.name = name
         self.description = description
         self.function = function
         self.version = version
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"AccessPolicyTemplate({self.id})"
 
     def to_json(self) -> str:
@@ -348,25 +370,25 @@ class AccessPolicyTemplate:
         )
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> AccessPolicyTemplate:
         return cls(
-            uuid.UUID(json_data["id"]),
-            json_data["name"],
-            json_data["description"],
-            json_data["function"],
-            json_data["version"],
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            description=json_data["description"],
+            function=json_data["function"],
+            version=json_data["version"],
         )
 
 
 class AccessPolicyComponent:
-    def __init__(self, policy="", template="", template_parameters=""):
+    def __init__(self, policy="", template="", template_parameters="") -> None:
         if policy != "":
             setattr(self, "policy", policy)
         if template != "":
             setattr(self, "template", template)
             setattr(self, "template_parameters", template_parameters)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if hasattr(self, "policy"):
             return f"AccessPolicyComponent({self.policy})"
         elif hasattr(self, "template"):
@@ -384,11 +406,11 @@ class AccessPolicyComponent:
         return ucjson.dumps(obj)
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> AccessPolicyComponent:
         return cls(
-            json_data["policy"] if "policy" in json_data else "",
-            json_data["template"] if "template" in json_data else "",
-            json_data["template_parameters"]
+            policy=json_data["policy"] if "policy" in json_data else "",
+            template=json_data["template"] if "template" in json_data else "",
+            template_parameters=json_data["template_parameters"]
             if "template_parameters" in json_data
             else "",
         )
@@ -410,7 +432,7 @@ class AccessPolicy:
         policy_type="",
         version=0,
         components=[],
-    ):
+    ) -> None:
         self.id = id
         self.name = name
         self.description = description
@@ -418,7 +440,7 @@ class AccessPolicy:
         self.version = version
         self.components = components
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"AccessPolicy({self.id})"
 
     def to_json(self) -> str:
@@ -434,14 +456,16 @@ class AccessPolicy:
         )
 
     @classmethod
-    def from_json(cls, json_data):
+    def from_json(cls, json_data: dict) -> AccessPolicy:
         return cls(
-            uuid.UUID(json_data["id"]),
-            json_data["name"],
-            json_data["description"],
-            json_data["policy_type"],
-            json_data["version"],
-            [AccessPolicyComponent.from_json(apc) for apc in json_data["components"]],
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            description=json_data["description"],
+            policy_type=json_data["policy_type"],
+            version=json_data["version"],
+            components=[
+                AccessPolicyComponent.from_json(apc) for apc in json_data["components"]
+            ],
         )
 
 
@@ -465,7 +489,7 @@ class Transformer:
         transform_type="",
         function="",
         parameters="",
-    ):
+    ) -> None:
         self.id = id
         self.name = name
         self.input_type = input_type
@@ -475,8 +499,11 @@ class Transformer:
         self.function = function
         self.parameters = parameters
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Transformer({self.id})"
+
+    def __str__(self) -> str:
+        return f"transformer {self.name} - {self.id}"
 
     def to_json(self) -> str:
         return ucjson.dumps(
@@ -493,7 +520,7 @@ class Transformer:
         )
 
     @classmethod
-    def from_json(cls, json_data) -> Transformer:
+    def from_json(cls, json_data: dict) -> Transformer:
         return cls(
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
@@ -510,14 +537,14 @@ class RetentionDuration:
     unit: str
     duration: int
 
-    def __init__(self, unit, duration):
+    def __init__(self, unit: str, duration: int):
         self.unit = unit
         self.duration = duration
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"RetentionDuration(unit: '{self.unit}', duration: '{self.duration}')"
 
-    def to_json(self):
+    def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "unit": self.unit,
@@ -526,10 +553,10 @@ class RetentionDuration:
         )
 
     @classmethod
-    def from_json(cls, data):
+    def from_json(cls, data: dict) -> RetentionDuration:
         return cls(
-            data["unit"],
-            data["duration"],
+            unit=data["unit"],
+            duration=data["duration"],
         )
 
 
