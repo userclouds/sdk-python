@@ -917,8 +917,10 @@ class Client:
         )
         return j.get("has_attribute")
 
-    def DownloadUserstoreSDK(self) -> str:
-        return self._download("/userstore/download/codegensdk.py")
+    def DownloadUserstoreSDK(self, include_example=True) -> str:
+        return self._download(
+            f"/userstore/download/codegensdk.py?include_example={include_example and 'true' or 'false'}"
+        )
 
     # Access Token Helpers
 
