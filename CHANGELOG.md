@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 - UNPUBLISHED
+## 1.2.0 - 21-11-2023
 
 - Cleanup httpx client usage.
   This is a breaking change to the HTTP client interface since we stopped passing the deprecated `data` argument to the httpx client methods (PUT & POST) and pass the `content` argument instead.
