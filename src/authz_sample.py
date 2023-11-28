@@ -22,6 +22,10 @@ DocUserObjectType = ObjectType(
     id=uuid.UUID("755410e3-97da-4acc-8173-4a10cab2c861"), type_name="DocUser"
 )
 
+GroupObjectType = ObjectType(
+    id=uuid.UUID("2189aec5-e839-44b2-98d5-2cbdc7e97086"), type_name="Group"
+)
+
 FolderObjectType = ObjectType(
     id=uuid.UUID("f7478d4c-4001-4735-80bc-da136f22b5ac"), type_name="Folder"
 )
@@ -30,10 +34,28 @@ DocumentObjectType = ObjectType(
     id=uuid.UUID("a9460374-2431-4771-a760-840a62e5566e"), type_name="Document"
 )
 
+UserMemberOfGroupEdgeType = EdgeType(
+    id=uuid.UUID("92213717-6873-4d05-97d0-ab3126d55ed4"),
+    type_name="UserMemberOfGroup",
+    source_object_type_id=DocUserObjectType.id,
+    target_object_type_id=GroupObjectType.id,
+    attributes=[
+        Attribute(name="view", direct=False, inherit=True, propagate=False),
+    ],
+)
+
 UserViewFolderEdgeType = EdgeType(
     id=uuid.UUID("4c3a7c7b-aae4-4d58-8094-7a9f3d7da7c6"),
     type_name="UserViewFolder",
     source_object_type_id=DocUserObjectType.id,
+    target_object_type_id=FolderObjectType.id,
+    attributes=[Attribute(name="view", direct=True, inherit=False, propagate=False)],
+)
+
+GroupViewFolderEdgeType = EdgeType(
+    id=uuid.UUID("95a416a5-37eb-4b59-bb3d-df9ee2d93b9b"),
+    type_name="GroupViewFolder",
+    source_object_type_id=GroupObjectType.id,
     target_object_type_id=FolderObjectType.id,
     attributes=[Attribute(name="view", direct=True, inherit=False, propagate=False)],
 )
@@ -57,9 +79,12 @@ FolderViewDocEdgeType = EdgeType(
 
 def setup_authz(c: Client):
     c.CreateObjectType(DocUserObjectType, if_not_exists=True)
+    c.CreateObjectType(GroupObjectType, if_not_exists=True)
     c.CreateObjectType(DocumentObjectType, if_not_exists=True)
     c.CreateObjectType(FolderObjectType, if_not_exists=True)
+    c.CreateEdgeType(UserMemberOfGroupEdgeType, if_not_exists=True)
     c.CreateEdgeType(UserViewFolderEdgeType, if_not_exists=True)
+    c.CreateEdgeType(GroupViewFolderEdgeType, if_not_exists=True)
     c.CreateEdgeType(FolderViewFolderEdgeType, if_not_exists=True)
     c.CreateEdgeType(FolderViewDocEdgeType, if_not_exists=True)
 
@@ -96,6 +121,11 @@ def test_authz(client: Client) -> None:
         user = client.GetObject(user.id)  # no-op, just illustrative
         objects.append(user)
 
+        group = client.CreateObject(
+            Object(id=uuid.uuid4(), type_id=GroupObjectType.id, alias="group")
+        )
+        objects.append(group)
+
         folder1 = client.CreateObject(
             Object(id=uuid.uuid4(), type_id=FolderObjectType.id, alias="folder1")
         )
@@ -105,6 +135,11 @@ def test_authz(client: Client) -> None:
             Object(id=uuid.uuid4(), type_id=FolderObjectType.id, alias="folder2")
         )
         objects.append(folder2)
+
+        folder3 = client.CreateObject(
+            Object(id=uuid.uuid4(), type_id=FolderObjectType.id, alias="folder3")
+        )
+        objects.append(folder3)
 
         doc1 = client.CreateObject(
             Object(id=uuid.uuid4(), type_id=DocumentObjectType.id, alias="doc1")
@@ -116,6 +151,24 @@ def test_authz(client: Client) -> None:
         )
         objects.append(doc2)
 
+        doc3 = client.CreateObject(
+            Object(id=uuid.uuid4(), type_id=DocumentObjectType.id, alias="doc3")
+        )
+        objects.append(doc3)
+
+        # user is member of group
+        edges.append(
+            client.CreateEdge(
+                Edge(
+                    id=uuid.uuid4(),
+                    edge_type_id=UserMemberOfGroupEdgeType.id,
+                    source_object_id=user.id,
+                    target_object_id=group.id,
+                )
+            )
+        )
+
+        # user can view folder 1
         new_edge = client.CreateEdge(
             Edge(
                 id=uuid.uuid4(),
@@ -127,6 +180,19 @@ def test_authz(client: Client) -> None:
         new_edge = client.GetEdge(new_edge.id)  # no-op, just illustrative
         edges.append(new_edge)
 
+        # folder 1 can view doc 1
+        edges.append(
+            client.CreateEdge(
+                Edge(
+                    id=uuid.uuid4(),
+                    edge_type_id=FolderViewDocEdgeType.id,
+                    source_object_id=folder1.id,
+                    target_object_id=doc1.id,
+                )
+            )
+        )
+
+        # folder 1 can view folder 2
         edges.append(
             client.CreateEdge(
                 Edge(
@@ -138,6 +204,7 @@ def test_authz(client: Client) -> None:
             )
         )
 
+        # folder 2 can view doc 2
         edges.append(
             client.CreateEdge(
                 Edge(
@@ -145,6 +212,18 @@ def test_authz(client: Client) -> None:
                     edge_type_id=FolderViewDocEdgeType.id,
                     source_object_id=folder2.id,
                     target_object_id=doc2.id,
+                )
+            )
+        )
+
+        # folder 3 can view doc 3
+        edges.append(
+            client.CreateEdge(
+                Edge(
+                    id=uuid.uuid4(),
+                    edge_type_id=FolderViewDocEdgeType.id,
+                    source_object_id=folder3.id,
+                    target_object_id=doc3.id,
                 )
             )
         )
@@ -157,13 +236,33 @@ def test_authz(client: Client) -> None:
         if not client.CheckAttribute(user.id, folder2.id, "view"):
             raise SampleError("user cannot view folder2 but should be able to")
 
-        # user cannot view doc1
-        if client.CheckAttribute(user.id, doc1.id, "view"):
-            raise SampleError("user can view doc1 but should not be able to")
+        # user can view doc1
+        if not client.CheckAttribute(user.id, doc1.id, "view"):
+            raise SampleError("user cannot view doc1 but should be able to")
 
         # user can view doc2
         if not client.CheckAttribute(user.id, doc2.id, "view"):
             raise SampleError("user cannot view doc2 but should be able to")
+
+        # user cannot view doc3
+        if client.CheckAttribute(user.id, doc3.id, "view"):
+            raise SampleError("user can view doc3 but should not be able to")
+
+        # group can view folder3
+        edges.append(
+            client.CreateEdge(
+                Edge(
+                    id=uuid.uuid4(),
+                    edge_type_id=GroupViewFolderEdgeType.id,
+                    source_object_id=group.id,
+                    target_object_id=folder3.id,
+                )
+            )
+        )
+
+        # now user can view doc3
+        if not client.CheckAttribute(user.id, doc3.id, "view"):
+            raise SampleError("user cannot view doc3 but should be able to")
 
     finally:
         for e in edges:
