@@ -7,7 +7,6 @@ import urllib.parse
 import uuid
 from dataclasses import asdict
 
-import httpx
 import jwt
 
 from . import ucjson
@@ -35,6 +34,7 @@ from .models import (
     UpdateColumnRetentionDurationsRequest,
     UserResponse,
 )
+from .uchttpclient import create_default_uc_http_client
 
 _JSON_CONTENT_TYPE = "application/json"
 
@@ -82,17 +82,13 @@ def read_env(name: str, desc: str) -> str:
     return value
 
 
-def create_http_client(url: str, **kwargs) -> httpx.Client:
-    return httpx.Client(base_url=url, **kwargs)
-
-
 def _is_json(resp) -> bool:
     return resp.headers.get("Content-Type") == _JSON_CONTENT_TYPE
 
 
 class Client:
     @classmethod
-    def from_env(cls, client_factory=create_http_client, **kwargs):
+    def from_env(cls, client_factory=create_default_uc_http_client, **kwargs):
         return cls(
             url=read_env("TENANT_URL", "Tenant URL"),
             client_id=read_env("CLIENT_ID", "Client ID"),
@@ -106,7 +102,7 @@ class Client:
         url: str,
         client_id: str,
         client_secret: str,
-        client_factory=create_http_client,
+        client_factory=create_default_uc_http_client,
         **kwargs,
     ):
         self._authorization = base64.b64encode(
@@ -115,11 +111,7 @@ class Client:
                 "ISO-8859-1",
             )
         ).decode("ascii")
-        self._client = client_factory(url, **kwargs)
-        kwargs.pop(
-            "verify", None
-        )  # Remove verify from kwargs since it is not compatible with httpx request methods (get, post, etc...)
-        self._request_kwargs = kwargs
+        self._client = client_factory(base_url=url, **kwargs)
         self._access_token: str | None = None  # lazy loaded
 
     # User Operations
@@ -930,16 +922,11 @@ class Client:
             "Authorization": f"Basic {self._authorization}",
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        body = {"grant_type": "client_credentials"}
+        body = "grant_type=client_credentials"
 
         # Note that we use requests directly here (instead of _post) because we don't
         # want to refresh the access token as we are trying to get it. :)
-        resp = self._client.post(
-            "/oidc/token",
-            headers=headers,
-            data=body,
-            **self._request_kwargs,
-        )
+        resp = self._client.post("/oidc/token", headers=headers, content=body)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         json_data = ucjson.loads(resp.text)
@@ -969,45 +956,39 @@ class Client:
 
     def _get(self, url, params: dict[str, str | int] | None = None) -> dict:
         self._refresh_access_token_if_needed()
-        args = self._request_kwargs.copy()
-        if params:
-            args["params"] = params
-        resp = self._client.get(url, headers=self._get_headers(), **args)
+        resp = self._client.get(url, params=params, headers=self._get_headers())
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
-    def _prep_json_data(self, json_data: dict | str | None) -> tuple(dict, dict):
+    def _prep_json_data(self, json_data: dict | str | None) -> tuple(dict, str | None):
         self._refresh_access_token_if_needed()
-        args = self._request_kwargs.copy()
         headers = self._get_headers()
+        content = None
         if json_data is not None:
             headers["Content-Type"] = _JSON_CONTENT_TYPE
-            args["content"] = (
+            content = (
                 json_data if isinstance(json_data, str) else ucjson.dumps(json_data)
             )
-        return args, headers
+        return headers, content
 
     def _post(self, url, json_data: dict | str | None = None) -> dict | list:
-        args, headers = self._prep_json_data(json_data)
-        resp = self._client.post(url, headers=headers, **args)
+        headers, content = self._prep_json_data(json_data)
+        resp = self._client.post(url, headers=headers, content=content)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
     def _put(self, url, json_data: dict | str | None = None) -> dict | list:
-        args, headers = self._prep_json_data(json_data)
-        resp = self._client.put(url, headers=headers, **args)
+        headers, content = self._prep_json_data(json_data)
+        resp = self._client.put(url, headers=headers, content=content)
         if resp.status_code >= 400:
             raise Error.from_response(resp)
         return ucjson.loads(resp.text)
 
     def _delete(self, url, params: dict[str, str | int] | None = None) -> bool:
         self._refresh_access_token_if_needed()
-        args = self._request_kwargs.copy()
-        if params:
-            args["params"] = params
-        resp = self._client.delete(url, headers=self._get_headers(), **args)
+        resp = self._client.delete(url, params=params, headers=self._get_headers())
 
         if resp.status_code == 404:
             return False
@@ -1018,8 +999,7 @@ class Client:
 
     def _download(self, url) -> str:
         self._refresh_access_token_if_needed()
-        args = self._request_kwargs.copy()
-        resp = self._client.get(url, headers=self._get_headers(), **args)
+        resp = self._client.get(url, headers=self._get_headers())
         return resp.text
 
 

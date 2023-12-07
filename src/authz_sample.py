@@ -3,6 +3,10 @@ import uuid
 
 from usercloudssdk.client import Client, Error
 from usercloudssdk.models import Attribute, Edge, EdgeType, Object, ObjectType
+from usercloudssdk.uchttpclient import (
+    create_default_uc_http_client,
+    create_no_ssl_http_client,
+)
 
 client_id = "<REPLACE ME>"
 client_secret = "<REPLACE ME>"
@@ -305,10 +309,13 @@ if __name__ == "__main__":
     disable_ssl_verify = (
         os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
     )
-    client = (
-        Client(url, client_id, client_secret, verify=False)
+    client = Client(
+        url,
+        client_id,
+        client_secret,
+        client_factory=create_no_ssl_http_client
         if disable_ssl_verify
-        else Client(url, client_id, client_secret)
+        else create_default_uc_http_client,
     )
     try:
         run_authz_sample(client)
