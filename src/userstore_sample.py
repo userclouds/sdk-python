@@ -39,10 +39,15 @@ from usercloudssdk.policies import (
     TransformerPassThrough,
     ValidatorOpen,
 )
+from usercloudssdk.uchttpclient import (
+    create_default_uc_http_client,
+    create_no_ssl_http_client,
+)
 
 client_id = "<REPLACE ME>"
 client_secret = "<REPLACE ME>"
 url = "<REPLACE ME>"
+
 
 # This sample shows you how to create new columns in the user store and create access
 # policies governing access to the data inside those columns. It also shows you how to
@@ -741,9 +746,12 @@ if __name__ == "__main__":
     disable_ssl_verify = (
         os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
     )
-    client = (
-        Client(url, client_id, client_secret, verify=False)
+    client = Client(
+        url,
+        client_id,
+        client_secret,
+        client_factory=create_no_ssl_http_client
         if disable_ssl_verify
-        else Client(url, client_id, client_secret)
+        else create_default_uc_http_client,
     )
     run_userstore_sample(client)

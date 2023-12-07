@@ -2,11 +2,17 @@ import pytest
 from authz_sample import run_authz_sample
 from tokenizer_sample import run_tokenizer_sample
 from usercloudssdk.client import Client
+from usercloudssdk.uchttpclient import create_uc_http_client_with_timeout
 from userstore_sample import run_userstore_sample
 
 
 class TestSDKSamples:
-    @pytest.fixture(params=[{}, {"timeout": 5}])
+    @pytest.fixture(
+        params=[
+            {},
+            {"client_factory": create_uc_http_client_with_timeout, "timeout": 5},
+        ]
+    )
     def ucclient(self, request) -> Client:
         return Client.from_env(**request.param)
 

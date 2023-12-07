@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0 - TBD
+
+- Introduce UCHttpClient to assist in custom HTTP clients by defining the interface in which UserClouds makes requests to [httpx](https://www.python-httpx.org/)
+
 ## 1.2.0 - 21-11-2023
 
 - Cleanup httpx client usage.
