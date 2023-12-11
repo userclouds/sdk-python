@@ -753,10 +753,8 @@ class Client:
         return objects
 
     def CreateObject(self, object: Object, if_not_exists=False) -> Object:
-        body = object.__dict__
-
         try:
-            j = self._post("/authz/objects", json_data=body)
+            j = self._post("/authz/objects", json_data={"object": object.__dict__})
             return Object.from_json(j)
         except Error as e:
             if if_not_exists:
@@ -786,10 +784,8 @@ class Client:
         return edges
 
     def CreateEdge(self, edge: Edge, if_not_exists=False) -> Edge:
-        body = edge.__dict__
-
         try:
-            j = self._post("/authz/edges", json_data=body)
+            j = self._post("/authz/edges", json_data={"edge": edge.__dict__})
             return Edge.from_json(j)
         except Error as e:
             if if_not_exists:
@@ -821,10 +817,10 @@ class Client:
     def CreateObjectType(
         self, object_type: ObjectType, if_not_exists=False
     ) -> ObjectType:
-        body = object_type.__dict__
-
         try:
-            j = self._post("/authz/objecttypes", json_data=body)
+            j = self._post(
+                "/authz/objecttypes", json_data={"object_type": object_type.__dict__}
+            )
             return ObjectType.from_json(j)
         except Error as e:
             if if_not_exists:
@@ -854,10 +850,10 @@ class Client:
         return edge_types
 
     def CreateEdgeType(self, edge_type: EdgeType, if_not_exists=False) -> EdgeType:
-        body = edge_type.__dict__
-
         try:
-            j = self._post("/authz/edgetypes", json_data=body)
+            j = self._post(
+                "/authz/edgetypes", json_data={"edge_type": edge_type.__dict__}
+            )
             return EdgeType.from_json(j)
         except Error as e:
             if if_not_exists:
@@ -886,10 +882,20 @@ class Client:
         organizations = [Organization.from_json(o) for o in j["data"]]
         return organizations
 
-    def CreateOrganization(self, organization: Organization) -> Organization:
-        body = organization.__dict__
-        json_data = self._post("/authz/organizations", json_data=body)
-        return Organization.from_json(json_data)
+    def CreateOrganization(
+        self, organization: Organization, if_not_exists=False
+    ) -> Organization:
+        try:
+            json_data = self._post(
+                "/authz/organizations",
+                json_data={"organization": organization.__dict__},
+            )
+            return Organization.from_json(json_data)
+        except Error as e:
+            if if_not_exists:
+                organization.id = _id_from_identical_conflict(e)
+                return organization
+            raise e
 
     def GetOrganization(self, id: uuid.UUID) -> Organization:
         json_data = self._get(f"/authz/organizations/{id}")
