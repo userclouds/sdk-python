@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.0 - TBD
+## 1.3.0 - 11-12-2023
 
 - Introduce UCHttpClient to assist in custom HTTP clients by defining the interface in which UserClouds makes requests to [httpx](https://www.python-httpx.org/)
 - Changing POST body format for authorization Create functions, and adding if_not_exists option to CreateOrganization. These are non-breaking changes, but older clients using the previous format will be deprecated eventually.
