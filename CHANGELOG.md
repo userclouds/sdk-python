@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 - UNPUBLISHED
+
+- Breaking change: ColumnInputConfig now has data member "normalizer", previously referred to as "validator"
+
 ## 1.3.0 - 11-12-2023
 
 - Introduce UCHttpClient to assist in custom HTTP clients by defining the interface in which UserClouds makes requests to [httpx](https://www.python-httpx.org/)
