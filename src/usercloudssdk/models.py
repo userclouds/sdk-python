@@ -264,17 +264,17 @@ class Accessor:
 
 class ColumnInputConfig:
     column: ResourceID
-    validator: ResourceID
+    normalizer: ResourceID
 
-    def __init__(self, column: ResourceID, validator: ResourceID) -> None:
+    def __init__(self, column: ResourceID, normalizer: ResourceID) -> None:
         self.column = column
-        self.validator = validator
+        self.normalizer = normalizer
 
     @classmethod
     def from_json(cls, json_data: dict) -> ColumnInputConfig:
         return cls(
             column=ResourceID.from_json(json_data["column"]),
-            validator=ResourceID.from_json(json_data["validator"]),
+            normalizer=ResourceID.from_json(json_data["normalizer"]),
         )
 
 
@@ -324,7 +324,7 @@ class Mutator:
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
             description=json_data["description"],
-            columns=json_data["columns"],
+            columns=[ColumnInputConfig.from_json(j) for j in json_data["columns"]],
             access_policy=ResourceID.from_json(json_data["access_policy"]),
             selector_config=UserSelectorConfig.from_json(json_data["selector_config"]),
             version=json_data["version"],
@@ -728,41 +728,6 @@ class ColumnRetentionDurationsResponse:
                 ColumnRetentionDuration.from_json(rd)
                 for rd in data["retention_durations"]
             ],
-        )
-
-
-class Validator:
-    id: uuid.UUID
-    name: str
-    function: str
-    parameters: str
-
-    def __init__(self, id, name="", function="", parameters=""):
-        self.id = id
-        self.name = name
-        self.function = function
-        self.parameters = parameters
-
-    def __repr__(self):
-        return f"Validator({self.id})"
-
-    def to_json(self) -> str:
-        return ucjson.dumps(
-            {
-                "id": str(self.id),
-                "name": self.name,
-                "function": self.function,
-                "parameters": self.parameters,
-            },
-        )
-
-    @classmethod
-    def from_json(cls, json_data) -> Validator:
-        return cls(
-            id=uuid.UUID(json_data["id"]),
-            name=json_data["name"],
-            function=json_data["function"],
-            parameters=json_data["parameters"],
         )
 
 

@@ -36,8 +36,8 @@ from usercloudssdk.models import (
 )
 from usercloudssdk.policies import (
     AccessPolicyOpen,
+    NormalizerOpen,
     TransformerPassThrough,
-    ValidatorOpen,
 )
 from usercloudssdk.uchttpclient import (
     create_default_uc_http_client,
@@ -478,11 +478,11 @@ function id(len) {
         columns=[
             ColumnInputConfig(
                 column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
-                validator=ResourceID(id=ValidatorOpen.id),
+                normalizer=ResourceID(id=NormalizerOpen.id),
             ),
             ColumnInputConfig(
                 column=ResourceID(name="home_addresses"),
-                validator=ResourceID(id=ValidatorOpen.id),
+                normalizer=ResourceID(id=NormalizerOpen.id),
             ),
         ],
         access_policy=ResourceID(id=AccessPolicyOpen.id),
@@ -508,7 +508,7 @@ function id(len) {
         columns=[
             ColumnInputConfig(
                 column=_EMAIL_COLUMN_RESOURCE_ID,
-                validator=ResourceID(id=ValidatorOpen.id),
+                normalizer=ResourceID(id=NormalizerOpen.id),
             ),
         ],
         access_policy=ResourceID(id=AccessPolicyOpen.id),

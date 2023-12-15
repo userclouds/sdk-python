@@ -12,4 +12,4 @@ TransformerCreditCard = ResourceID(id=uuid.UUID("618a4ae7-9979-4ee8-bac5-db87335
 TransformerPassThrough = ResourceID(
     id=uuid.UUID("c0b5b2a1-0b1f-4b9f-8b1a-1b1f4b9f8b1a")
 )
-ValidatorOpen = ResourceID(id=uuid.UUID("c0b5b2a1-0b1f-4b9f-8b1a-1b1f4b9f8b1a"))
+NormalizerOpen = ResourceID(id=uuid.UUID("c0b5b2a1-0b1f-4b9f-8b1a-1b1f4b9f8b1a"))

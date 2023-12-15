@@ -14,7 +14,7 @@ url = "<REPLACE ME>"
 
 
 class SampleError(BaseException):
-    def __init__(self, error):
+    def __init__(self, error: str) -> None:
         self.error = error
 
 
@@ -81,34 +81,34 @@ FolderViewDocEdgeType = EdgeType(
 )
 
 
-def setup_authz(c: Client):
-    c.CreateObjectType(DocUserObjectType, if_not_exists=True)
-    c.CreateObjectType(GroupObjectType, if_not_exists=True)
-    c.CreateObjectType(DocumentObjectType, if_not_exists=True)
-    c.CreateObjectType(FolderObjectType, if_not_exists=True)
-    c.CreateEdgeType(UserMemberOfGroupEdgeType, if_not_exists=True)
-    c.CreateEdgeType(UserViewFolderEdgeType, if_not_exists=True)
-    c.CreateEdgeType(GroupViewFolderEdgeType, if_not_exists=True)
-    c.CreateEdgeType(FolderViewFolderEdgeType, if_not_exists=True)
-    c.CreateEdgeType(FolderViewDocEdgeType, if_not_exists=True)
+def setup_authz(client: Client) -> None:
+    client.CreateObjectType(DocUserObjectType, if_not_exists=True)
+    client.CreateObjectType(GroupObjectType, if_not_exists=True)
+    client.CreateObjectType(DocumentObjectType, if_not_exists=True)
+    client.CreateObjectType(FolderObjectType, if_not_exists=True)
+    client.CreateEdgeType(UserMemberOfGroupEdgeType, if_not_exists=True)
+    client.CreateEdgeType(UserViewFolderEdgeType, if_not_exists=True)
+    client.CreateEdgeType(GroupViewFolderEdgeType, if_not_exists=True)
+    client.CreateEdgeType(FolderViewFolderEdgeType, if_not_exists=True)
+    client.CreateEdgeType(FolderViewDocEdgeType, if_not_exists=True)
 
-    ot_ids = {ot.id for ot in c.ListObjectTypes()}
+    ot_ids = {ot.id for ot in client.ListObjectTypes()}
     for ot in (DocUserObjectType, DocumentObjectType, FolderObjectType):
         if ot.id not in ot_ids:
-            raise SampleError("setup failed: object type " + ot.type_name + " missing")
+            raise SampleError(f"setup failed: object type {ot.type_name } missing")
 
-    et_ids = {et.id for et in c.ListEdgeTypes()}
+    et_ids = {et.id for et in client.ListEdgeTypes()}
     for et in (
         UserViewFolderEdgeType,
         FolderViewFolderEdgeType,
         FolderViewDocEdgeType,
     ):
         if et.id not in et_ids:
-            raise SampleError("setup failed: edge type " + et.type_name + " missing")
+            raise SampleError(f"setup failed: edge type {et.type_name} missing")
 
     # we don't do anything with organizations in this sample, but just illustrating
     # that the endpoint works
-    c.ListOrganizations()
+    client.ListOrganizations()
 
 
 def test_authz(client: Client) -> None:
@@ -269,11 +269,11 @@ def test_authz(client: Client) -> None:
             raise SampleError("user cannot view doc3 but should be able to")
 
     finally:
-        for e in edges:
-            client.DeleteEdge(e.id)
+        for edge in edges:
+            client.DeleteEdge(edge.id)
 
-        for o in objects:
-            client.DeleteObject(o.id)
+        for obj in objects:
+            client.DeleteObject(obj.id)
 
     final_obj_count = len(client.ListObjects())
     final_edge_count = len(client.ListEdges())
