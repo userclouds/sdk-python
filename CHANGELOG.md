@@ -41,5 +41,5 @@
 - Allow overriding the default HTTP client with a custom one.
 - Add SDK methods for managing retention durations for soft-deleted data.
 - Various other cleanup to the code.
-- Method in the the new Python SDK Client for downloading the custom userstore sdk for your userstore (DownloadUserstoreSDK).
+- Method in the new Python SDK Client for downloading the custom userstore sdk for your userstore (DownloadUserstoreSDK).
 - Userstore SDK now includes methods like UpdateUserForPurposes which allows you to pass the purposes in as an array of enum constants.

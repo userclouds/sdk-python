@@ -779,16 +779,23 @@ class InspectTokenResponse:
 class APIErrorResponse:
     error: str
     id: uuid.UUID
+    secondary_id: uuid.UUID
     identical: bool
 
-    def __init__(self, error, id, identical):
+    def __init__(self, error, id, secondary_id, identical):
         self.error = error
         self.id = id
+        self.secondary_id = secondary_id
         self.identical = identical
 
     def to_json(self) -> str:
         return ucjson.dumps(
-            {"error": self.error, "id": self.id, "identical": self.identical}
+            {
+                "error": self.error,
+                "id": self.id,
+                "secondary_id": self.secondary_id,
+                "identical": self.identical,
+            }
         )
 
     @classmethod
@@ -796,6 +803,9 @@ class APIErrorResponse:
         return cls(
             error=json_data["error"],
             id=uuid.UUID(json_data["id"]),
+            secondary_id=uuid.UUID(json_data["secondary_id"])
+            if "secondary_id" in json_data
+            else uuid.UUID(int=0),
             identical=json_data["identical"],
         )
 
