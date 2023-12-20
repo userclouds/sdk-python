@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import importlib.metadata
 import os
 import time
 import urllib.parse
@@ -37,6 +38,7 @@ from .models import (
 from .uchttpclient import create_default_uc_http_client
 
 _JSON_CONTENT_TYPE = "application/json"
+_SDK_VERSION = importlib.metadata.version(__package__) or "unknown"
 
 
 class Error(Exception):
@@ -103,6 +105,7 @@ class Client:
         client_id: str,
         client_secret: str,
         client_factory=create_default_uc_http_client,
+        session_name: str | None = None,
         **kwargs,
     ):
         self._authorization = base64.b64encode(
@@ -111,8 +114,14 @@ class Client:
                 "ISO-8859-1",
             )
         ).decode("ascii")
+
         self._client = client_factory(base_url=url, **kwargs)
         self._access_token: str | None = None  # lazy loaded
+        base_ua = f"UserClouds Python SDK v{_SDK_VERSION}"
+        self._common_headers = {
+            "User-Agent": f"{base_ua} [{session_name}]" if session_name else base_ua,
+            "X-Usercloudssdk-Version": _SDK_VERSION,
+        }
 
     # User Operations
 
@@ -928,6 +937,7 @@ class Client:
             "Authorization": f"Basic {self._authorization}",
             "Content-Type": "application/x-www-form-urlencoded",
         }
+        headers.update(self._common_headers)
         body = "grant_type=client_credentials"
 
         # Note that we use requests directly here (instead of _post) because we don't
@@ -956,7 +966,9 @@ class Client:
             self._access_token = self._get_access_token()
 
     def _get_headers(self) -> dict:
-        return {"Authorization": f"Bearer {self._access_token}"}
+        headers = {"Authorization": f"Bearer {self._access_token}"}
+        headers.update(self._common_headers)
+        return headers
 
     # Request Helpers
 

@@ -747,11 +747,12 @@ if __name__ == "__main__":
         os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
     )
     client = Client(
-        url,
-        client_id,
-        client_secret,
+        url=url,
+        client_id=client_id,
+        client_secret=client_secret,
         client_factory=create_no_ssl_http_client
         if disable_ssl_verify
         else create_default_uc_http_client,
+        session_name=os.environ.get("UC_SESSION_NAME"),
     )
     run_userstore_sample(client)
