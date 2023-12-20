@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from authz_sample import run_authz_sample
 from tokenizer_sample import run_tokenizer_sample
@@ -14,7 +16,9 @@ class TestSDKSamples:
         ]
     )
     def ucclient(self, request) -> Client:
-        return Client.from_env(**request.param)
+        kwargs = {"session_name": os.environ.get("UC_SESSION_NAME")}
+        kwargs.update(request.param)
+        return Client.from_env(**kwargs)
 
     def test_authz(self, ucclient: Client) -> None:
         run_authz_sample(ucclient)
