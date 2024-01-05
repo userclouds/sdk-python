@@ -127,16 +127,31 @@ class Client:
 
     # AuthN user methods (shouldn't be used by UserStore customers)
 
-    def CreateUser(self) -> uuid.UUID:
-        # TODO: this is weird server behavior, the body is effectively empty, but if we don't specify a body (content) at all the request will fail.
-        resp_json = self._post("/authn/users", json_data={})
+    def CreateUser(
+        self,
+        organization_id: uuid.UUID | None = None,
+        region: str | None = None,
+    ) -> uuid.UUID:
+        body = {
+            "organization_id": organization_id,
+            "region": region,
+        }
+        resp_json = self._post("/authn/users", json_data=body)
         return resp_json.get("id")
 
-    def CreateUserWithPassword(self, username: str, password: str) -> uuid.UUID:
+    def CreateUserWithPassword(
+        self,
+        username: str,
+        password: str,
+        organization_id: uuid.UUID | None = None,
+        region: str | None = None,
+    ) -> uuid.UUID:
         body = {
             "username": username,
             "password": password,
             "authn_type": AUTHN_TYPE_PASSWORD,
+            "organization_id": organization_id,
+            "region": region,
         }
 
         resp_json = self._post("/authn/users", json_data=body)
@@ -180,12 +195,14 @@ class Client:
         context: dict,
         row_data: dict,
         organization_id: uuid.UUID | None = None,
+        region: str | None = None,
     ) -> uuid.UUID:
         body = {
             "mutator_id": mutator_id,
             "context": context,
             "row_data": row_data,
             "organization_id": organization_id,
+            "region": region,
         }
         return self._post("/userstore/api/users", json_data=body)
 

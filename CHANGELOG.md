@@ -5,6 +5,7 @@
 - Breaking change: ColumnInputConfig now has data member "normalizer", previously referred to as "validator"
 - Add "User-Agent" & "X-Usercloudssdk-Version" headers to all outgoing requests.
 - Add an optional `session_name` kwarg to the `Client` constructor to allow extra information to be incremented into the User-Agent header.
+- Add "region" parameter to CreateUser and CreateUserWithMutator to allow specifying in which region the user data should reside
 
 ## 1.3.0 - 11-12-2023
 
