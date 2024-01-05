@@ -572,6 +572,7 @@ def example(
                 ],
             },
         },
+        region="aws-us-east-1",
     )
 
     # set the user's info using the mutator
