@@ -410,9 +410,11 @@ class AccessPolicyComponent:
         return cls(
             policy=json_data["policy"] if "policy" in json_data else "",
             template=json_data["template"] if "template" in json_data else "",
-            template_parameters=json_data["template_parameters"]
-            if "template_parameters" in json_data
-            else "",
+            template_parameters=(
+                json_data["template_parameters"]
+                if "template_parameters" in json_data
+                else ""
+            ),
         )
 
 
@@ -803,9 +805,11 @@ class APIErrorResponse:
         return cls(
             error=json_data["error"],
             id=uuid.UUID(json_data["id"]),
-            secondary_id=uuid.UUID(json_data["secondary_id"])
-            if "secondary_id" in json_data
-            else uuid.UUID(int=0),
+            secondary_id=(
+                uuid.UUID(json_data["secondary_id"])
+                if "secondary_id" in json_data
+                else uuid.UUID(int=0)
+            ),
             identical=json_data["identical"],
         )
 
