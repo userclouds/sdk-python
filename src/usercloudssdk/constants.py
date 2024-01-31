@@ -4,8 +4,8 @@ COLUMN_INDEX_TYPE_UNIQUE = "unique"
 
 AUTHN_TYPE_PASSWORD = "password"
 
-POLICY_TYPE_COMPOSITE_INTERSECTION = "compositeintersection"
-POLICY_TYPE_COMPOSITE_UNION = "compositeunion"
+POLICY_TYPE_COMPOSITE_AND = "composite_and"
+POLICY_TYPE_COMPOSITE_OR = "composite_or"
 
 DATA_TYPE_ADDRESS = "address"
 DATA_TYPE_BOOLEAN = "boolean"
