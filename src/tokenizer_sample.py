@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import functools
 import os
 
 from usercloudssdk.client import Client, Error
 from usercloudssdk.constants import (
     DATA_TYPE_STRING,
-    POLICY_TYPE_COMPOSITE_INTERSECTION,
+    POLICY_TYPE_COMPOSITE_AND,
     TRANSFORM_TYPE_TRANSFORM,
 )
 from usercloudssdk.models import (
@@ -43,7 +45,7 @@ def test_access_policies(client: Client):
 
     new_ap = AccessPolicy(
         name="test_access_policy",
-        policy_type=POLICY_TYPE_COMPOSITE_INTERSECTION,
+        policy_type=POLICY_TYPE_COMPOSITE_AND,
         components=[
             AccessPolicyComponent(
                 template=ResourceID(name="test_template"), template_parameters="{}"
@@ -241,9 +243,11 @@ if __name__ == "__main__":
         url=url,
         client_id=client_id,
         client_secret=client_secret,
-        client_factory=create_no_ssl_http_client
-        if disable_ssl_verify
-        else create_default_uc_http_client,
+        client_factory=(
+            create_no_ssl_http_client
+            if disable_ssl_verify
+            else create_default_uc_http_client
+        ),
         session_name=os.environ.get("UC_SESSION_NAME"),
     )
     run_tokenizer_sample(client)

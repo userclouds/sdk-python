@@ -129,10 +129,12 @@ class Client:
 
     def CreateUser(
         self,
+        id: uuid.UUID | None = None,
         organization_id: uuid.UUID | None = None,
         region: str | None = None,
     ) -> uuid.UUID:
         body = {
+            "id": id,
             "organization_id": organization_id,
             "region": region,
         }
@@ -143,6 +145,7 @@ class Client:
         self,
         username: str,
         password: str,
+        id: uuid.UUID | None = None,
         organization_id: uuid.UUID | None = None,
         region: str | None = None,
     ) -> uuid.UUID:
@@ -150,6 +153,7 @@ class Client:
             "username": username,
             "password": password,
             "authn_type": AUTHN_TYPE_PASSWORD,
+            "id": id,
             "organization_id": organization_id,
             "region": region,
         }
@@ -194,6 +198,7 @@ class Client:
         mutator_id: uuid.UUID,
         context: dict,
         row_data: dict,
+        id: uuid.UUID | None = None,
         organization_id: uuid.UUID | None = None,
         region: str | None = None,
     ) -> uuid.UUID:
@@ -201,6 +206,7 @@ class Client:
             "mutator_id": mutator_id,
             "context": context,
             "row_data": row_data,
+            "id": id,
             "organization_id": organization_id,
             "region": region,
         }
