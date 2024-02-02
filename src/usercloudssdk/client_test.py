@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from usercloudssdk.client import Client, Error
+from usercloudssdk.client import Client
+from usercloudssdk.errors import UserCloudsSDKError
 
 
 class TestClient:
@@ -33,7 +34,7 @@ class TestClient:
                 "error_description": "no plex app with Plex client ID ''",
             },
         )
-        with pytest.raises(Error, match="invalid_client") as excinfo:
+        with pytest.raises(UserCloudsSDKError, match="invalid_client") as excinfo:
             ucclient._get_access_token()
         assert excinfo.value.code == 401
         assert excinfo.value.request_id == "kramer"

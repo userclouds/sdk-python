@@ -3,12 +3,13 @@ from __future__ import annotations
 import functools
 import os
 
-from usercloudssdk.client import Client, Error
+from usercloudssdk.client import Client
 from usercloudssdk.constants import (
     DATA_TYPE_STRING,
     POLICY_TYPE_COMPOSITE_AND,
     TRANSFORM_TYPE_TRANSFORM,
 )
+from usercloudssdk.errors import UserCloudsSDKError
 from usercloudssdk.models import (
     AccessPolicy,
     AccessPolicyComponent,
@@ -39,7 +40,7 @@ def test_access_policies(client: Client):
         created_apt = client.GetAccessPolicyTemplate(ResourceID(id=created_apt.id))
         created_apt.description = "updated description"
         client.UpdateAccessPolicyTemplate(created_apt)
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to create new access policy template: ", e)
         raise
 
@@ -57,14 +58,14 @@ def test_access_policies(client: Client):
         created_ap = client.CreateAccessPolicy(new_ap, if_not_exists=True)
         # no op, but illustrates how to get a policy
         created_ap = client.GetAccessPolicy(ResourceID(id=created_ap.id))
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to create new access policy: ", e)
         raise
 
     aps = []
     try:
         aps = client.ListAccessPolicies()
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to list access policies: ", e)
         raise
 
@@ -84,14 +85,14 @@ def test_access_policies(client: Client):
                 f"update changed version from {created_ap.version} to {update.version},\
  expected +1"
             )
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to update access policy: ", e)
         raise
 
     try:
         if not client.DeleteAccessPolicy(update.id, update.version):
             print("failed to delete access policy but no error?")
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to delete access policy: ", e)
         raise
 
@@ -103,7 +104,7 @@ def test_access_policies(client: Client):
                     print(f"got access policy with version {ap.version}, expected 0")
         if len(aps) == 0:
             print("found no policies, expected to find version 0")
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to get access policy: ", e)
         raise
 
@@ -112,7 +113,7 @@ def test_access_policies(client: Client):
     try:
         if not client.DeleteAccessPolicy(update.id, 0):
             print("failed to delete access policy but no error?")
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to delete access policy: ", e)
         raise
 
@@ -121,7 +122,7 @@ def test_access_policies(client: Client):
             created_apt.id, 1
         ) or not client.DeleteAccessPolicyTemplate(created_apt.id, 0):
             print("failed to delete access policy template but no error?")
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to delete access policy template: ", e)
         raise
 
@@ -137,14 +138,14 @@ def test_transformers(client: Client):
 
     try:
         created_gp = client.CreateTransformer(new_gp, if_not_exists=True)
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to create new transformer: ", e)
         raise
 
     gps = []
     try:
         gps = client.ListTransformers()
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to list transformers: ", e)
         raise
 
@@ -158,7 +159,7 @@ def test_transformers(client: Client):
     try:
         if not client.DeleteTransformer(created_gp.id):
             print("failed to delete transformer but no error?")
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to delete transformer: ", e)
         raise
 
@@ -179,7 +180,7 @@ def test_token_apis(client: Client) -> None:
         lookup_tokens = client.LookupToken(
             originalData, TransformerUUID, AccessPolicyOpen
         )
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to lookup token: ", e)
         raise
 
@@ -191,7 +192,7 @@ def test_token_apis(client: Client) -> None:
     itr = None
     try:
         itr = client.InspectToken(token)
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to inspect token: ", e)
         raise
 
@@ -211,7 +212,7 @@ access policy {AccessPolicyOpen.id}"
     try:
         if not client.DeleteToken(token):
             print("failed to delete token but no error?")
-    except Error as e:
+    except UserCloudsSDKError as e:
         print("failed to delete token: ", e)
         raise
 
@@ -221,7 +222,7 @@ def test_error_handling(client: Client) -> None:
         d = client.ResolveTokens(["not a token"], {}, [])
         if d[0]["data"] != "":
             print("expected nothing but got data: ", d)
-    except Error as e:
+    except UserCloudsSDKError as e:
         if e.code != 404:
             print("got unexpected error code (wanted 404): ", e.code)
             raise

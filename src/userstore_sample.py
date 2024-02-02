@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import uuid
 import warnings
 
-from usercloudssdk.client import Client, Error
+from usercloudssdk.asyncclient import AsyncClient
+from usercloudssdk.client import Client
 from usercloudssdk.constants import (
     COLUMN_INDEX_TYPE_INDEXED,
     COLUMN_INDEX_TYPE_NONE,
@@ -40,7 +42,9 @@ from usercloudssdk.policies import (
     TransformerPassThrough,
 )
 from usercloudssdk.uchttpclient import (
+    create_default_uc_http_async_client,
     create_default_uc_http_client,
+    create_no_ssl_http_async_client,
     create_no_ssl_http_client,
 )
 
@@ -193,7 +197,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
             client.DeleteSoftDeletedRetentionDurationOnTenant(
                 default_duration.retention_duration.id
             )
-    except Error:
+    except Exception:
         pass
 
     # retain all soft-deleted values for any column or purpose for 1 week by default
@@ -217,7 +221,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
             client.DeleteSoftDeletedRetentionDurationOnPurpose(
                 security.id, purpose_rd.retention_duration.id
             )
-    except Error:
+    except Exception:
         pass
 
     # retain soft-deleted values for any column with a security purpose for 1 year by default
@@ -572,7 +576,6 @@ def example(
                 ],
             },
         },
-        region="aws-us-east-1",
     )
 
     # set the user's info using the mutator
@@ -743,6 +746,27 @@ def run_userstore_sample(client: Client) -> None:
     cleanup(client, accessors, mutators)
 
 
+async def print_userstore_stats(client_async: Client):
+    tasks = [
+        client_async.ListColumnsAsync(),
+        client_async.ListPurposesAsync(),
+        client_async.ListAccessPolicyTemplatesAsync(),
+        client_async.ListAccessPoliciesAsync(),
+        client_async.ListTransformersAsync(),
+        client_async.ListAccessorsAsync(),
+        client_async.ListMutatorsAsync(),
+    ]
+    results = await asyncio.gather(*tasks)
+    print("Userstore stats:")
+    print(f"num columns: {len(results[0])}")
+    print(f"num purposes: {len(results[1])}")
+    print(f"num access policy templates: {len(results[2])}")
+    print(f"num access policies: {len(results[3])}")
+    print(f"num transformers: {len(results[4])}")
+    print(f"num accessors: {len(results[5])}")
+    print(f"num mutators: {len(results[6])}")
+
+
 if __name__ == "__main__":
     disable_ssl_verify = (
         os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
@@ -759,3 +783,17 @@ if __name__ == "__main__":
         session_name=os.environ.get("UC_SESSION_NAME"),
     )
     run_userstore_sample(client)
+
+    client_async = AsyncClient(
+        url=url,
+        client_id=client_id,
+        client_secret=client_secret,
+        client_factory=(
+            create_no_ssl_http_async_client
+            if disable_ssl_verify
+            else create_default_uc_http_async_client
+        ),
+        session_name=os.environ.get("UC_SESSION_NAME"),
+    )
+
+    asyncio.run(print_userstore_stats(client_async))
