@@ -40,9 +40,11 @@ class Client:
     @classmethod
     def from_env(cls, client_factory=create_default_uc_http_client, **kwargs):
         return cls(
-            url=_read_env("TENANT_URL", "Tenant URL"),
-            client_id=_read_env("CLIENT_ID", "Client ID"),
-            client_secret=_read_env("CLIENT_SECRET", "Client Secret"),
+            url=_read_env("USERCLOUDS_TENANT_URL", "UserClouds Tenant URL"),
+            client_id=_read_env("USERCLOUDS_CLIENT_ID", "UserClouds Client ID"),
+            client_secret=_read_env(
+                "USERCLOUDS_CLIENT_SECRET", "UserClouds Client Secret"
+            ),
             client_factory=client_factory,
             **kwargs,
         )

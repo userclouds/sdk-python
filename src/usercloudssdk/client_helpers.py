@@ -1,6 +1,7 @@
 import importlib.metadata
 import os
 import uuid
+import warnings
 
 from .errors import UserCloudsSDKError
 from .models import APIErrorResponse
@@ -16,6 +17,13 @@ def _id_from_identical_conflict(err: UserCloudsSDKError) -> uuid.UUID:
 
 def _read_env(name: str, desc: str) -> str:
     value = os.getenv(name)
+    if not value:
+        deprecated_name = name.removeprefix("USERCLOUDS_")
+        value = os.getenv(deprecated_name)
+        if value:
+            warnings.warn(
+                f"Warning: Environment variable '{deprecated_name}' is deprecated, please use '{name}' instead"
+            )
     if not value:
         raise UserCloudsSDKError(
             f"Missing environment variable '{name}': UserClouds {desc}"
