@@ -13,6 +13,7 @@ from usercloudssdk.constants import (
     COLUMN_INDEX_TYPE_NONE,
     DATA_TYPE_ADDRESS,
     DATA_TYPE_BOOLEAN,
+    DATA_TYPE_COMPOSITE,
     DATA_TYPE_STRING,
     POLICY_TYPE_COMPOSITE_AND,
     TRANSFORM_TYPE_TOKENIZE_BY_VALUE,
@@ -24,6 +25,8 @@ from usercloudssdk.models import (
     AccessPolicyComponent,
     AccessPolicyTemplate,
     Column,
+    ColumnConstraints,
+    ColumnField,
     ColumnInputConfig,
     ColumnOutputConfig,
     ColumnRetentionDuration,
@@ -121,6 +124,29 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
             is_array=False,
             default_value="",
             index_type=COLUMN_INDEX_TYPE_INDEXED,
+        ),
+        if_not_exists=True,
+    )
+
+    client.CreateColumn(
+        Column(
+            id=None,
+            name="usa_address",
+            type=DATA_TYPE_COMPOSITE,
+            is_array=False,
+            default_value="",
+            index_type=COLUMN_INDEX_TYPE_NONE,
+            constraints=ColumnConstraints(
+                immutable_required=False,
+                unique_id_required=False,
+                unique_required=False,
+                fields=[
+                    ColumnField(type=DATA_TYPE_STRING, name="Street_Address"),
+                    ColumnField(type=DATA_TYPE_STRING, name="City"),
+                    ColumnField(type=DATA_TYPE_STRING, name="State"),
+                    ColumnField(type=DATA_TYPE_STRING, name="Zip"),
+                ],
+            ),
         ),
         if_not_exists=True,
     )
@@ -380,6 +406,10 @@ function id(len) {
                 column=ResourceID(name="id"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
+            ColumnOutputConfig(
+                column=ResourceID(name="usa_address"),
+                transformer=ResourceID(id=TransformerPassThrough.id),
+            ),
         ],
         access_policy=ResourceID(id=ap.id),
         selector_config=UserSelectorConfig("{id} = ?"),
@@ -416,6 +446,10 @@ function id(len) {
                 column=ResourceID(name="id"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
+            ColumnOutputConfig(
+                column=ResourceID(name="usa_address"),
+                transformer=ResourceID(id=TransformerPassThrough.id),
+            ),
         ],
         access_policy=ResourceID(id=ap.id),
         selector_config=UserSelectorConfig(
@@ -445,6 +479,10 @@ function id(len) {
             ),
             ColumnOutputConfig(
                 column=ResourceID(name="id"),
+                transformer=ResourceID(id=TransformerPassThrough.id),
+            ),
+            ColumnOutputConfig(
+                column=ResourceID(name="usa_address"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
         ],
@@ -486,6 +524,10 @@ function id(len) {
             ),
             ColumnInputConfig(
                 column=ResourceID(name="home_addresses"),
+                normalizer=ResourceID(id=NormalizerOpen.id),
+            ),
+            ColumnInputConfig(
+                column=ResourceID(name="usa_address"),
                 normalizer=ResourceID(id=NormalizerOpen.id),
             ),
         ],
@@ -596,6 +638,14 @@ def example(
                 "value": '[{"country":"usa", "street_address_line_1":"742 Evergreen \
 Terrace", "locality":"Springfield"}, {"country":"usa", "street_address_line_1":"123 \
 Main St", "locality":"Pleasantville"}]',
+                "purpose_additions": [
+                    {"Name": _SECURITY_PURPOSE_NAME},
+                    {"Name": "support"},
+                    {"Name": "operational"},
+                ],
+            },
+            "usa_address": {
+                "value": '{"street_address":"742 Evergreen Terrace","city":"Springfield","state":"IL","zip":"62704"}',
                 "purpose_additions": [
                     {"Name": _SECURITY_PURPOSE_NAME},
                     {"Name": "support"},

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.0 - UNPUBLISHED
+## 1.4.0 - 02-02-2024
 
 - Breaking change: ColumnInputConfig now has data member "normalizer", previously referred to as "validator"
 - Add "User-Agent" & "X-Usercloudssdk-Version" headers to all outgoing requests.
@@ -8,6 +8,7 @@
 - Add "region" parameter to CreateUser and CreateUserWithMutator to allow specifying in which region the user data should reside
 - Rename "compositeunion" and "compositeintersection" types of access policies to "composite_or" and "composite_and"
 - Breaking change: Added AsyncClient class and UCHttpAsyncClient interface to support asynchronous requests. As part of this, Error class was consolidated into UserCloudsSDKError, which may break any customers referencing it.
+- Add support for column constraints, which enables custom composite columns as well as checks for immutability, uniqueness, and unique IDs within array columns
 
 ## 1.3.0 - 11-12-2023
 

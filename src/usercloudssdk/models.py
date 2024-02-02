@@ -26,7 +26,7 @@ class User:
         )
 
     @classmethod
-    def from_json(cls, json_data) -> User:
+    def from_json(cls, json_data: dict) -> User:
         return cls(
             id=uuid.UUID(json_data["id"]),
             profile=json_data["profile"],
@@ -81,7 +81,7 @@ class UserSelectorConfig:
         return ucjson.dumps({"where_clause": self.where_clause})
 
     @classmethod
-    def from_json(cls, json_data) -> UserSelectorConfig:
+    def from_json(cls, json_data: dict) -> UserSelectorConfig:
         return cls(where_clause=json_data["where_clause"])
 
 
@@ -104,8 +104,94 @@ class ResourceID:
         return hasattr(self, "id") or hasattr(self, "name")
 
     @classmethod
-    def from_json(cls, json_data) -> ResourceID:
+    def from_json(cls, json_data: dict) -> ResourceID:
         return cls(id=json_data["id"], name=json_data["name"])
+
+
+class ColumnField:
+    type: str
+    name: str
+    camel_case_name: str
+    struct_name: str
+    optional: bool
+    ignore_for_uniqueness: bool
+
+    def __init__(
+        self,
+        type: str,
+        name: str,
+        camel_case_name: str = "",
+        struct_name: str = "",
+        optional: bool = False,
+        ignore_for_uniqueness: bool = False,
+    ) -> None:
+        self.type = type
+        self.name = name
+        self.camel_case_name = camel_case_name
+        self.struct_name = struct_name
+        self.optional = optional
+        self.ignore_for_uniqueness = ignore_for_uniqueness
+
+    def to_json(self) -> str:
+        return ucjson.dumps(
+            {
+                "type": self.type,
+                "name": self.name,
+                "camel_case_name": self.camel_case_name,
+                "struct_name": self.struct_name,
+                "optional": self.optional,
+                "ignore_for_uniqueness": self.ignore_for_uniqueness,
+            }
+        )
+
+    @classmethod
+    def from_json(cls, json_data: dict) -> ColumnField:
+        return cls(
+            type=json_data["type"],
+            name=json_data["name"],
+            camel_case_name=json_data["camel_case_name"],
+            struct_name=json_data["struct_name"],
+            optional=json_data["optional"],
+            ignore_for_uniqueness=json_data["ignore_for_uniqueness"],
+        )
+
+
+class ColumnConstraints:
+    immutable_required: bool
+    unique_id_required: bool
+    unique_required: bool
+    fields: list[ColumnField]
+
+    def __init__(
+        self,
+        immutable_required: bool,
+        unique_id_required: bool,
+        unique_required: bool,
+        fields: list[ColumnField],
+    ) -> None:
+        self.immutable_required = immutable_required
+        self.unique_id_required = unique_id_required
+        self.unique_required = unique_required
+        self.fields = fields
+
+    def to_json(self) -> str:
+        return ucjson.dumps(
+            {
+                "immutable_required": self.immutable_required,
+                "unique_id_required": self.unique_id_required,
+                "unique_required": self.unique_required,
+                "fields": self.fields,
+            }
+        )
+
+    @classmethod
+    def from_json(cls, json_data: dict) -> ColumnConstraints:
+        return cls(
+            immutable_required=json_data["immutable_required"],
+            unique_id_required=json_data["unique_id_required"],
+            unique_required=json_data["unique_required"],
+            fields=json_data["fields"],
+        )
 
 
 class Column:
@@ -115,6 +201,7 @@ class Column:
     is_array: bool
     default_value: str
     index_type: str
+    constraints: ColumnConstraints
 
     def __init__(
         self,
@@ -124,6 +211,7 @@ class Column:
         is_array: bool,
         default_value: str,
         index_type: str,
+        constraints: ColumnConstraints | None = None,
     ) -> None:
         self.id = id
         self.name = name
@@ -131,6 +219,15 @@ class Column:
         self.is_array = is_array
         self.default_value = default_value
         self.index_type = index_type
+        if constraints is None:
+            self.constraints = ColumnConstraints(
+                immutable_required=False,
+                unique_id_required=False,
+                unique_required=False,
+                fields=[],
+            )
+        else:
+            self.constraints = constraints
 
     def to_json(self) -> str:
         return ucjson.dumps(
@@ -141,11 +238,12 @@ class Column:
                 "is_array": self.is_array,
                 "default_value": self.default_value,
                 "index_type": self.index_type,
+                "constraints": self.constraints,
             }
         )
 
     @classmethod
-    def from_json(cls, json_data) -> Column:
+    def from_json(cls, json_data: dict) -> Column:
         return cls(
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
@@ -153,6 +251,7 @@ class Column:
             is_array=json_data["is_array"],
             default_value=json_data["default_value"],
             index_type=json_data["index_type"],
+            constraints=json_data["constraints"],
         )
 
 
@@ -767,7 +866,7 @@ class InspectTokenResponse:
         )
 
     @classmethod
-    def from_json(cls, json_data) -> InspectTokenResponse:
+    def from_json(cls, json_data: dict) -> InspectTokenResponse:
         return cls(
             id=uuid.UUID(json_data["id"]),
             token=json_data["token"],
@@ -828,7 +927,7 @@ class Address:
     sorting_code: str | None = None
 
     @classmethod
-    def from_json(cls, json_data) -> Address:
+    def from_json(cls, json_data: dict) -> Address:
         return cls(
             country=json_data["country"],
             name=json_data["name"],
@@ -854,7 +953,7 @@ class Object:
     organization_id: uuid.UUID | None = None
 
     @classmethod
-    def from_json(cls, json_data) -> Object:
+    def from_json(cls, json_data: dict) -> Object:
         return cls(
             id=uuid.UUID(json_data["id"]),
             type_id=uuid.UUID(json_data["type_id"]),
@@ -877,7 +976,7 @@ class Edge:
     deleted: datetime.datetime | None = None
 
     @classmethod
-    def from_json(cls, json_data) -> Edge:
+    def from_json(cls, json_data: dict) -> Edge:
         return cls(
             id=uuid.UUID(json_data["id"]),
             edge_type_id=uuid.UUID(json_data["edge_type_id"]),
@@ -899,7 +998,7 @@ class ObjectType:
     organization_id: uuid.UUID | None = None
 
     @classmethod
-    def from_json(cls, json_data) -> ObjectType:
+    def from_json(cls, json_data: dict) -> ObjectType:
         return cls(
             id=uuid.UUID(json_data["id"]),
             type_name=json_data["type_name"],
@@ -918,7 +1017,7 @@ class Attribute:
     propagate: bool
 
     @classmethod
-    def from_json(cls, json_data) -> Attribute:
+    def from_json(cls, json_data: dict) -> Attribute:
         return cls(
             name=json_data["name"],
             direct=json_data["direct"],
