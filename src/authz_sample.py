@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 import uuid
 
-from usercloudssdk.client import Client, Error
+from usercloudssdk.client import Client
+from usercloudssdk.errors import UserCloudsSDKError
 from usercloudssdk.models import Attribute, Edge, EdgeType, Object, ObjectType
 from usercloudssdk.uchttpclient import (
     create_default_uc_http_client,
@@ -325,7 +326,7 @@ if __name__ == "__main__":
     )
     try:
         run_authz_sample(client)
-    except Error as err:
+    except UserCloudsSDKError as err:
         print(f"Client Error: {err!r}")
         exit(1)
     except SampleError as err:

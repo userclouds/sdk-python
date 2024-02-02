@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import time
 import urllib.parse
@@ -33,12 +34,12 @@ from .models import (
     UpdateColumnRetentionDurationsRequest,
     UserResponse,
 )
-from .uchttpclient import create_default_uc_http_client
+from .uchttpclient import create_default_uc_http_async_client
 
 
-class Client:
+class AsyncClient:
     @classmethod
-    def from_env(cls, client_factory=create_default_uc_http_client, **kwargs):
+    def from_env(cls, client_factory=create_default_uc_http_async_client, **kwargs):
         return cls(
             url=_read_env("TENANT_URL", "Tenant URL"),
             client_id=_read_env("CLIENT_ID", "Client ID"),
@@ -52,7 +53,7 @@ class Client:
         url: str,
         client_id: str,
         client_secret: str,
-        client_factory=create_default_uc_http_client,
+        client_factory=create_default_uc_http_async_client,
         session_name: str | None = None,
         **kwargs,
     ):
@@ -65,6 +66,7 @@ class Client:
 
         self._client = client_factory(base_url=url, **kwargs)
         self._access_token: str | None = None  # lazy loaded
+        self._access_token_lock = asyncio.Lock()
         base_ua = f"UserClouds Python SDK v{_SDK_VERSION}"
         self._common_headers = {
             "User-Agent": f"{base_ua} [{session_name}]" if session_name else base_ua,
@@ -75,7 +77,7 @@ class Client:
 
     # AuthN user methods (shouldn't be used by UserStore customers)
 
-    def CreateUser(
+    async def CreateUserAsync(
         self,
         id: uuid.UUID | None = None,
         organization_id: uuid.UUID | None = None,
@@ -86,10 +88,10 @@ class Client:
             "organization_id": organization_id,
             "region": region,
         }
-        resp_json = self._post("/authn/users", json_data=body)
+        resp_json = await self._post_async("/authn/users", json_data=body)
         return resp_json.get("id")
 
-    def CreateUserWithPassword(
+    async def CreateUserWithPasswordAsync(
         self,
         username: str,
         password: str,
@@ -106,10 +108,10 @@ class Client:
             "region": region,
         }
 
-        resp_json = self._post("/authn/users", json_data=body)
+        resp_json = await self._post_async("/authn/users", json_data=body)
         return resp_json.get("id")
 
-    def ListUsers(
+    async def ListUsersAsync(
         self,
         limit: int = 0,
         starting_after: uuid.UUID | None = None,
@@ -123,25 +125,27 @@ class Client:
         if email is not None:
             params["email"] = email
         params["version"] = "3"
-        resp_json = self._get("/authn/users", params=params)
+        resp_json = await self._get_async("/authn/users", params=params)
 
         users = [UserResponse.from_json(ur) for ur in resp_json["data"]]
         return users
 
-    def GetUser(self, id: uuid.UUID) -> UserResponse:
-        resp_json = self._get(f"/authn/users/{id}")
+    async def GetUserAsync(self, id: uuid.UUID) -> UserResponse:
+        resp_json = await self._get_async(f"/authn/users/{id}")
         return UserResponse.from_json(resp_json)
 
-    def UpdateUser(self, id: uuid.UUID, profile: dict) -> UserResponse:
-        resp_json = self._put(f"/authn/users/{id}", json_data={"profile": profile})
+    async def UpdateUserAsync(self, id: uuid.UUID, profile: dict) -> UserResponse:
+        resp_json = await self._put_async(
+            f"/authn/users/{id}", json_data={"profile": profile}
+        )
         return UserResponse.from_json(resp_json)
 
-    def DeleteUser(self, id: uuid.UUID) -> bool:
-        return self._delete(f"/authn/users/{id}")
+    async def DeleteUserAsync(self, id: uuid.UUID) -> bool:
+        return await self._delete_async(f"/authn/users/{id}")
 
     # Userstore user methods (should be used along with Accessor and Mutator methods)
 
-    def CreateUserWithMutator(
+    async def CreateUserWithMutatorAsync(
         self,
         mutator_id: uuid.UUID,
         context: dict,
@@ -158,13 +162,13 @@ class Client:
             "organization_id": organization_id,
             "region": region,
         }
-        return self._post("/userstore/api/users", json_data=body)
+        return await self._post_async("/userstore/api/users", json_data=body)
 
     # Column Operations
 
-    def CreateColumn(self, column: Column, if_not_exists=False) -> Column:
+    async def CreateColumnAsync(self, column: Column, if_not_exists=False) -> Column:
         try:
-            resp_json = self._post(
+            resp_json = await self._post_async(
                 "/userstore/config/columns", json_data={"column": column.__dict__}
             )
             return Column.from_json(resp_json)
@@ -174,14 +178,14 @@ class Client:
                 return column
             raise err
 
-    def DeleteColumn(self, id: uuid.UUID) -> bool:
-        return self._delete(f"/userstore/config/columns/{id}")
+    async def DeleteColumnAsync(self, id: uuid.UUID) -> bool:
+        return await self._delete_async(f"/userstore/config/columns/{id}")
 
-    def GetColumn(self, id: uuid.UUID) -> Column:
-        resp_json = self._get(f"/userstore/config/columns/{id}")
+    async def GetColumnAsync(self, id: uuid.UUID) -> Column:
+        resp_json = await self._get_async(f"/userstore/config/columns/{id}")
         return Column.from_json(resp_json)
 
-    def ListColumns(
+    async def ListColumnsAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Column]:
         params: dict[str, int | str] = {}
@@ -190,12 +194,12 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        resp_json = self._get("/userstore/config/columns", params=params)
+        resp_json = await self._get_async("/userstore/config/columns", params=params)
         columns = [Column.from_json(col) for col in resp_json["data"]]
         return columns
 
-    def UpdateColumn(self, column: Column) -> Column:
-        resp_json = self._put(
+    async def UpdateColumnAsync(self, column: Column) -> Column:
+        resp_json = await self._put_async(
             f"/userstore/config/columns/{column.id}",
             json_data={"column": column.__dict__},
         )
@@ -203,9 +207,11 @@ class Client:
 
     # Purpose Operations
 
-    def CreatePurpose(self, purpose: Purpose, if_not_exists=False) -> Purpose:
+    async def CreatePurposeAsync(
+        self, purpose: Purpose, if_not_exists=False
+    ) -> Purpose:
         try:
-            resp_json = self._post(
+            resp_json = await self._post_async(
                 "/userstore/config/purposes", json_data={"purpose": purpose.__dict__}
             )
             return Purpose.from_json(resp_json)
@@ -215,14 +221,14 @@ class Client:
                 return purpose
             raise err
 
-    def DeletePurpose(self, id: uuid.UUID) -> bool:
-        return self._delete(f"/userstore/config/purposes/{id}")
+    async def DeletePurposeAsync(self, id: uuid.UUID) -> bool:
+        return await self._delete_async(f"/userstore/config/purposes/{id}")
 
-    def GetPurpose(self, id: uuid.UUID) -> Purpose:
-        json_resp = self._get(f"/userstore/config/purposes/{id}")
+    async def GetPurposeAsync(self, id: uuid.UUID) -> Purpose:
+        json_resp = await self._get_async(f"/userstore/config/purposes/{id}")
         return Purpose.from_json(json_resp)
 
-    def ListPurposes(
+    async def ListPurposesAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Purpose]:
         params: dict[str, str | int] = {}
@@ -231,12 +237,12 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        resp_json = self._get("/userstore/config/purposes", params=params)
+        resp_json = await self._get_async("/userstore/config/purposes", params=params)
         purposes = [Purpose.from_json(p) for p in resp_json["data"]]
         return purposes
 
-    def UpdatePurpose(self, purpose: Purpose) -> Purpose:
-        resp_json = self._put(
+    async def UpdatePurposeAsync(self, purpose: Purpose) -> Purpose:
+        resp_json = await self._put_async(
             f"/userstore/config/purposes/{purpose.id}",
             json_data={"purpose": purpose.__dict__},
         )
@@ -254,41 +260,43 @@ class Client:
     # by default.
 
     # create a tenant retention duration default
-    def CreateSoftDeletedRetentionDurationOnTenant(
+    async def CreateSoftDeletedRetentionDurationOnTenantAsync(
         self, req: UpdateColumnRetentionDurationRequest
     ) -> ColumnRetentionDurationResponse:
-        resp = self._post(
+        resp = await self._post_async(
             "/userstore/config/softdeletedretentiondurations", json_data=req.to_json()
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
     # delete a tenant retention duration default
-    def DeleteSoftDeletedRetentionDurationOnTenant(self, durationID: uuid.UUID) -> bool:
-        return self._delete(
+    async def DeleteSoftDeletedRetentionDurationOnTenantAsync(
+        self, durationID: uuid.UUID
+    ) -> bool:
+        return await self._delete_async(
             f"/userstore/config/softdeletedretentiondurations/{durationID}"
         )
 
     # get a specific tenant retention duration default
-    def GetSoftDeletedRetentionDurationOnTenant(
+    async def GetSoftDeletedRetentionDurationOnTenantAsync(
         self, durationID: uuid.UUID
     ) -> ColumnRetentionDurationResponse:
-        resp = self._get(
+        resp = await self._get_async(
             f"/userstore/config/softdeletedretentiondurations/{durationID}"
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
     # get tenant retention duration, or default value if not specified
-    def GetDefaultSoftDeletedRetentionDurationOnTenant(
+    async def GetDefaultSoftDeletedRetentionDurationOnTenantAsync(
         self,
     ) -> ColumnRetentionDurationResponse:
-        resp = self._get("/userstore/config/softdeletedretentiondurations")
+        resp = await self._get_async("/userstore/config/softdeletedretentiondurations")
         return ColumnRetentionDurationResponse.from_json(resp)
 
     # update a specific tenant retention duration default
-    def UpdateSoftDeletedRetentionDurationOnTenant(
+    async def UpdateSoftDeletedRetentionDurationOnTenantAsync(
         self, durationID: uuid.UUID, req: UpdateColumnRetentionDurationRequest
     ) -> ColumnRetentionDurationResponse:
-        resp = self._put(
+        resp = await self._put_async(
             f"/userstore/config/softdeletedretentiondurations/{durationID}",
             json_data=req.to_json(),
         )
@@ -302,49 +310,49 @@ class Client:
     # column purpose.
 
     # create a purpose retention duration default
-    def CreateSoftDeletedRetentionDurationOnPurpose(
+    async def CreateSoftDeletedRetentionDurationOnPurposeAsync(
         self, purposeID: uuid.UUID, req: UpdateColumnRetentionDurationRequest
     ) -> ColumnRetentionDurationResponse:
-        resp = self._post(
+        resp = await self._post_async(
             f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations",
             json_data=req.to_json(),
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
     # delete a purpose retention duration default
-    def DeleteSoftDeletedRetentionDurationOnPurpose(
+    async def DeleteSoftDeletedRetentionDurationOnPurposeAsync(
         self, purposeID: uuid.UUID, durationID: uuid.UUID
     ) -> bool:
-        return self._delete(
+        return await self._delete_async(
             f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations/{durationID}"
         )
 
     # get a specific purpose retention duration default
-    def GetSoftDeletedRetentionDurationOnPurpose(
+    async def GetSoftDeletedRetentionDurationOnPurposeAsync(
         self, purposeID: uuid.UUID, durationID: uuid.UUID
     ) -> ColumnRetentionDurationResponse:
-        resp = self._get(
+        resp = await self._get_async(
             f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations/{durationID}"
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
     # get purpose retention duration, or default value if not specified
-    def GetDefaultSoftDeletedRetentionDurationOnPurpose(
+    async def GetDefaultSoftDeletedRetentionDurationOnPurposeAsync(
         self, purposeID: uuid.UUID
     ) -> ColumnRetentionDurationResponse:
-        resp = self._get(
+        resp = await self._get_async(
             f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations"
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
     # update a specific purpose retention duration default
-    def UpdateSoftDeletedRetentionDurationOnPurpose(
+    async def UpdateSoftDeletedRetentionDurationOnPurposeAsync(
         self,
         purposeID: uuid.UUID,
         durationID: uuid.UUID,
         req: UpdateColumnRetentionDurationRequest,
     ) -> ColumnRetentionDurationResponse:
-        resp = self._put(
+        resp = await self._put_async(
             f"/userstore/config/purposes/{purposeID}/softdeletedretentiondurations/{durationID}",
             json_data=req.to_json(),
         )
@@ -357,39 +365,39 @@ class Client:
     # default retention durations.
 
     # get a specific column purpose retention duration
-    def GetSoftDeletedRetentionDurationOnColumn(
+    async def GetSoftDeletedRetentionDurationOnColumnAsync(
         self, columnID: uuid.UUID, durationID: uuid.UUID
     ) -> ColumnRetentionDurationResponse:
-        resp = self._get(
+        resp = await self._get_async(
             f"/userstore/config/columns/{columnID}/softdeletedretentiondurations/{durationID}"
         )
         return ColumnRetentionDurationResponse.from_json(resp)
 
     # get the retention duration for each purpose for a given column
-    def GetSoftDeletedRetentionDurationsOnColumn(
+    async def GetSoftDeletedRetentionDurationsOnColumnAsync(
         self, columnID: uuid.UUID
     ) -> ColumnRetentionDurationsResponse:
-        resp = self._get(
+        resp = await self._get_async(
             f"/userstore/config/columns/{columnID}/softdeletedretentiondurations"
         )
         return ColumnRetentionDurationsResponse.from_json(resp)
 
     # delete a specific column purpose retention duration
-    def DeleteSoftDeletedRetentionDurationOnColumn(
+    async def DeleteSoftDeletedRetentionDurationOnColumnAsync(
         self, columnID: uuid.UUID, durationID: uuid.UUID
     ) -> bool:
-        return self._delete(
+        return await self._delete_async(
             f"/userstore/config/columns/{columnID}/softdeletedretentiondurations/{durationID}"
         )
 
     # update a specific column purpose retention duration
-    def UpdateSoftDeletedRetentionDurationOnColumn(
+    async def UpdateSoftDeletedRetentionDurationOnColumnAsync(
         self,
         columnID: uuid.UUID,
         durationID: uuid.UUID,
         req: UpdateColumnRetentionDurationRequest,
     ) -> ColumnRetentionDurationResponse:
-        resp = self._put(
+        resp = await self._put_async(
             f"/userstore/config/columns/{columnID}/softdeletedretentiondurations/{durationID}",
             json_data=req.to_json(),
         )
@@ -397,10 +405,10 @@ class Client:
 
     # update the specified purpose retention durations for the column
     # - durations can be added, deleted, or updated for each purpose
-    def UpdateSoftDeletedRetentionDurationsOnColumn(
+    async def UpdateSoftDeletedRetentionDurationsOnColumnAsync(
         self, columnID: uuid.UUID, req: UpdateColumnRetentionDurationsRequest
     ) -> ColumnRetentionDurationsResponse:
-        resp = self._post(
+        resp = await self._post_async(
             f"/userstore/config/columns/{columnID}/softdeletedretentiondurations",
             json_data=req.to_json(),
         )
@@ -408,11 +416,11 @@ class Client:
 
     # Access Policy Templates
 
-    def CreateAccessPolicyTemplate(
+    async def CreateAccessPolicyTemplateAsync(
         self, access_policy_template: AccessPolicyTemplate, if_not_exists=False
     ) -> AccessPolicyTemplate | UserCloudsSDKError:
         try:
-            resp_json = self._post(
+            resp_json = await self._post_async(
                 "/tokenizer/policies/accesstemplate",
                 json_data={"access_policy_template": access_policy_template.__dict__},
             )
@@ -423,7 +431,7 @@ class Client:
                 return access_policy_template
             raise err
 
-    def ListAccessPolicyTemplates(
+    async def ListAccessPolicyTemplatesAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ):
         params: dict[str, int | str] = {}
@@ -432,39 +440,47 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        resp_json = self._get("/tokenizer/policies/accesstemplate", params=params)
+        resp_json = await self._get_async(
+            "/tokenizer/policies/accesstemplate", params=params
+        )
 
         templates = [AccessPolicyTemplate.from_json(apt) for apt in resp_json["data"]]
         return templates
 
-    def GetAccessPolicyTemplate(self, rid: ResourceID):
+    async def GetAccessPolicyTemplateAsync(self, rid: ResourceID):
         if rid.id is not None:
-            resp_json = self._get(f"/tokenizer/policies/accesstemplate/{rid.id}")
+            resp_json = await self._get_async(
+                f"/tokenizer/policies/accesstemplate/{rid.id}"
+            )
         elif rid.name is not None:
-            resp_json = self._get(f"/tokenizer/policies/accesstemplate?name={rid.name}")
+            resp_json = await self._get_async(
+                f"/tokenizer/policies/accesstemplate?name={rid.name}"
+            )
 
         return AccessPolicyTemplate.from_json(resp_json)
 
-    def UpdateAccessPolicyTemplate(self, access_policy_template: AccessPolicyTemplate):
-        resp_json = self._put(
+    async def UpdateAccessPolicyTemplateAsync(
+        self, access_policy_template: AccessPolicyTemplate
+    ):
+        resp_json = await self._put_async(
             f"/tokenizer/policies/accesstemplate/{access_policy_template.id}",
             json_data={"access_policy_template": access_policy_template.__dict__},
         )
         return AccessPolicyTemplate.from_json(resp_json)
 
-    def DeleteAccessPolicyTemplate(self, id: uuid.UUID, version: int):
-        return self._delete(
+    async def DeleteAccessPolicyTemplateAsync(self, id: uuid.UUID, version: int):
+        return await self._delete_async(
             f"/tokenizer/policies/accesstemplate/{id}",
             params={"template_version": str(version)},
         )
 
     # Access Policies
 
-    def CreateAccessPolicy(
+    async def CreateAccessPolicyAsync(
         self, access_policy: AccessPolicy, if_not_exists=False
     ) -> AccessPolicy | UserCloudsSDKError:
         try:
-            resp_json = self._post(
+            resp_json = await self._post_async(
                 "/tokenizer/policies/access",
                 json_data={"access_policy": access_policy.__dict__},
             )
@@ -475,7 +491,7 @@ class Client:
                 return access_policy
             raise err
 
-    def ListAccessPolicies(
+    async def ListAccessPoliciesAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ):
         params: dict[str, str | int] = {}
@@ -484,37 +500,41 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        resp_json = self._get("/tokenizer/policies/access", params=params)
+        resp_json = await self._get_async("/tokenizer/policies/access", params=params)
 
         policies = [AccessPolicy.from_json(ap) for ap in resp_json["data"]]
         return policies
 
-    def GetAccessPolicy(self, rid: ResourceID):
+    async def GetAccessPolicyAsync(self, rid: ResourceID):
         if rid.id is not None:
-            resp_json = self._get(f"/tokenizer/policies/access/{rid.id}")
+            resp_json = await self._get_async(f"/tokenizer/policies/access/{rid.id}")
         elif rid.name is not None:
-            resp_json = self._get(f"/tokenizer/policies/access?name={rid.name}")
+            resp_json = await self._get_async(
+                f"/tokenizer/policies/access?name={rid.name}"
+            )
 
         return AccessPolicy.from_json(resp_json)
 
-    def UpdateAccessPolicy(self, access_policy: AccessPolicy):
-        resp_json = self._put(
+    async def UpdateAccessPolicyAsync(self, access_policy: AccessPolicy):
+        resp_json = await self._put_async(
             f"/tokenizer/policies/access/{access_policy.id}",
             json_data={"access_policy": access_policy.__dict__},
         )
         return AccessPolicy.from_json(resp_json)
 
-    def DeleteAccessPolicy(self, id: uuid.UUID, version: int):
-        return self._delete(
+    async def DeleteAccessPolicyAsync(self, id: uuid.UUID, version: int):
+        return await self._delete_async(
             f"/tokenizer/policies/access/{id}",
             params={"policy_version": str(version)},
         )
 
     # Transformers
 
-    def CreateTransformer(self, transformer: Transformer, if_not_exists=False):
+    async def CreateTransformerAsync(
+        self, transformer: Transformer, if_not_exists=False
+    ):
         try:
-            resp_json = self._post(
+            resp_json = await self._post_async(
                 "/tokenizer/policies/transformation",
                 json_data={"transformer": transformer.__dict__},
             )
@@ -525,27 +545,33 @@ class Client:
                 return transformer
             raise err
 
-    def ListTransformers(self, limit: int = 0, starting_after: uuid.UUID | None = None):
+    async def ListTransformersAsync(
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
+    ):
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        resp_json = self._get("/tokenizer/policies/transformation", params=params)
+        resp_json = await self._get_async(
+            "/tokenizer/policies/transformation", params=params
+        )
         transformers = [Transformer.from_json(tf) for tf in resp_json["data"]]
         return transformers
 
     # Note: Transformers are immutable, so no Update method is provided.
 
-    def DeleteTransformer(self, id: uuid.UUID):
-        return self._delete(f"/tokenizer/policies/transformation/{id}")
+    async def DeleteTransformerAsync(self, id: uuid.UUID):
+        return await self._delete_async(f"/tokenizer/policies/transformation/{id}")
 
     # Accessor Operations
 
-    def CreateAccessor(self, accessor: Accessor, if_not_exists=False) -> Accessor:
+    async def CreateAccessorAsync(
+        self, accessor: Accessor, if_not_exists=False
+    ) -> Accessor:
         try:
-            resp_json = self._post(
+            resp_json = await self._post_async(
                 "/userstore/config/accessors", json_data={"accessor": accessor.__dict__}
             )
             return Accessor.from_json(resp_json)
@@ -555,14 +581,14 @@ class Client:
                 return accessor
             raise err
 
-    def DeleteAccessor(self, id: uuid.UUID) -> bool:
-        return self._delete(f"/userstore/config/accessors/{id}")
+    async def DeleteAccessorAsync(self, id: uuid.UUID) -> bool:
+        return await self._delete_async(f"/userstore/config/accessors/{id}")
 
-    def GetAccessor(self, id: uuid.UUID) -> Accessor:
-        j = self._get(f"/userstore/config/accessors/{id}")
+    async def GetAccessorAsync(self, id: uuid.UUID) -> Accessor:
+        j = await self._get_async(f"/userstore/config/accessors/{id}")
         return Accessor.from_json(j)
 
-    def ListAccessors(
+    async def ListAccessorsAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Accessor]:
         params: dict[str, str | int] = {}
@@ -571,19 +597,19 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        resp_json = self._get("/userstore/config/accessors", params=params)
+        resp_json = await self._get_async("/userstore/config/accessors", params=params)
 
         accessors = [Accessor.from_json(acs) for acs in resp_json["data"]]
         return accessors
 
-    def UpdateAccessor(self, accessor: Accessor) -> Accessor:
-        resp_json = self._put(
+    async def UpdateAccessorAsync(self, accessor: Accessor) -> Accessor:
+        resp_json = await self._put_async(
             f"/userstore/config/accessors/{accessor.id}",
             json_data={"accessor": accessor.__dict__},
         )
         return Accessor.from_json(resp_json)
 
-    def ExecuteAccessor(
+    async def ExecuteAccessorAsync(
         self, accessor_id: uuid.UUID, context: dict, selector_values: list
     ) -> list:
         body = {
@@ -591,13 +617,15 @@ class Client:
             "context": context,
             "selector_values": selector_values,
         }
-        return self._post("/userstore/api/accessors", json_data=body)
+        return await self._post_async("/userstore/api/accessors", json_data=body)
 
     # Mutator Operations
 
-    def CreateMutator(self, mutator: Mutator, if_not_exists=False) -> Mutator:
+    async def CreateMutatorAsync(
+        self, mutator: Mutator, if_not_exists=False
+    ) -> Mutator:
         try:
-            resp_json = self._post(
+            resp_json = await self._post_async(
                 "/userstore/config/mutators", json_data={"mutator": mutator.__dict__}
             )
             return Mutator.from_json(resp_json)
@@ -607,14 +635,14 @@ class Client:
                 return mutator
             raise e
 
-    def DeleteMutator(self, id: uuid.UUID) -> bool:
-        return self._delete(f"/userstore/config/mutators/{id}")
+    async def DeleteMutatorAsync(self, id: uuid.UUID) -> bool:
+        return await self._delete_async(f"/userstore/config/mutators/{id}")
 
-    def GetMutator(self, id: uuid.UUID) -> Mutator:
-        resp_json = self._get(f"/userstore/config/mutators/{id}")
+    async def GetMutatorAsync(self, id: uuid.UUID) -> Mutator:
+        resp_json = await self._get_async(f"/userstore/config/mutators/{id}")
         return Mutator.from_json(resp_json)
 
-    def ListMutators(
+    async def ListMutatorsAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Mutator]:
         params: dict[str, str | int] = {}
@@ -623,19 +651,19 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/userstore/config/mutators", params=params)
+        j = await self._get_async("/userstore/config/mutators", params=params)
 
         mutators = [Mutator.from_json(m) for m in j["data"]]
         return mutators
 
-    def UpdateMutator(self, mutator: Mutator) -> Mutator:
-        json_resp = self._put(
+    async def UpdateMutatorAsync(self, mutator: Mutator) -> Mutator:
+        json_resp = await self._put_async(
             f"/userstore/config/mutators/{mutator.id}",
             json_data={"mutator": mutator.__dict__},
         )
         return Mutator.from_json(json_resp)
 
-    def ExecuteMutator(
+    async def ExecuteMutatorAsync(
         self,
         mutator_id: uuid.UUID,
         context: dict,
@@ -649,12 +677,12 @@ class Client:
             "row_data": row_data,
         }
 
-        j = self._post("/userstore/api/mutators", json_data=body)
+        j = await self._post_async("/userstore/api/mutators", json_data=body)
         return j
 
     # Token Operations
 
-    def CreateToken(
+    async def CreateTokenAsync(
         self,
         data: str,
         transformer_rid: ResourceID,
@@ -666,10 +694,10 @@ class Client:
             "access_policy_rid": access_policy_rid.__dict__,
         }
 
-        json_resp = self._post("/tokenizer/tokens", json_data=body)
+        json_resp = await self._post_async("/tokenizer/tokens", json_data=body)
         return json_resp["data"]
 
-    def LookupOrCreateTokens(
+    async def LookupOrCreateTokensAsync(
         self,
         data: list[str],
         transformers: list[ResourceID],
@@ -681,27 +709,29 @@ class Client:
             "access_policy_rids": [asdict(a) for a in access_policies],
         }
 
-        j = self._post("/tokenizer/tokens/actions/lookuporcreate", json_data=body)
+        j = await self._post_async(
+            "/tokenizer/tokens/actions/lookuporcreate", json_data=body
+        )
         return j["tokens"]
 
-    def ResolveTokens(
+    async def ResolveTokensAsync(
         self, tokens: list[str], context: dict, purposes: list[ResourceID]
     ) -> list[str]:
         body = {"tokens": tokens, "context": context, "purposes": purposes}
 
-        j = self._post("/tokenizer/tokens/actions/resolve", json_data=body)
+        j = await self._post_async("/tokenizer/tokens/actions/resolve", json_data=body)
         return j
 
-    def DeleteToken(self, token: str) -> bool:
-        return self._delete("/tokenizer/tokens", params={"token": token})
+    async def DeleteTokenAsync(self, token: str) -> bool:
+        return await self._delete_async("/tokenizer/tokens", params={"token": token})
 
-    def InspectToken(self, token: str) -> InspectTokenResponse:
+    async def InspectTokenAsync(self, token: str) -> InspectTokenResponse:
         body = {"token": token}
 
-        j = self._post("/tokenizer/tokens/actions/inspect", json_data=body)
+        j = await self._post_async("/tokenizer/tokens/actions/inspect", json_data=body)
         return InspectTokenResponse.from_json(j)
 
-    def LookupToken(
+    async def LookupTokenAsync(
         self,
         data: str,
         transformer_rid: Transformer,
@@ -713,12 +743,12 @@ class Client:
             "access_policy_rid": access_policy_rid.__dict__,
         }
 
-        j = self._post("/tokenizer/tokens/actions/lookup", json_data=body)
+        j = await self._post_async("/tokenizer/tokens/actions/lookup", json_data=body)
         return j["tokens"]
 
     # AuthZ Operations
 
-    def ListObjects(
+    async def ListObjectsAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Object]:
         params: dict[str, str | int] = {}
@@ -727,14 +757,16 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/authz/objects", params=params)
+        j = await self._get_async("/authz/objects", params=params)
 
         objects = [Object.from_json(o) for o in j["data"]]
         return objects
 
-    def CreateObject(self, object: Object, if_not_exists=False) -> Object:
+    async def CreateObjectAsync(self, object: Object, if_not_exists=False) -> Object:
         try:
-            j = self._post("/authz/objects", json_data={"object": object.__dict__})
+            j = await self._post_async(
+                "/authz/objects", json_data={"object": object.__dict__}
+            )
             return Object.from_json(j)
         except UserCloudsSDKError as e:
             if if_not_exists:
@@ -742,14 +774,14 @@ class Client:
                 return object
             raise e
 
-    def GetObject(self, id: uuid.UUID) -> Object:
-        j = self._get(f"/authz/objects/{id}")
+    async def GetObjectAsync(self, id: uuid.UUID) -> Object:
+        j = await self._get_async(f"/authz/objects/{id}")
         return Object.from_json(j)
 
-    def DeleteObject(self, id: uuid.UUID):
-        return self._delete(f"/authz/objects/{id}")
+    async def DeleteObjectAsync(self, id: uuid.UUID):
+        return await self._delete_async(f"/authz/objects/{id}")
 
-    def ListEdges(
+    async def ListEdgesAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Edge]:
         params: dict[str, str | int] = {}
@@ -758,14 +790,16 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/authz/edges", params=params)
+        j = await self._get_async("/authz/edges", params=params)
 
         edges = [Edge.from_json(e) for e in j["data"]]
         return edges
 
-    def CreateEdge(self, edge: Edge, if_not_exists=False) -> Edge:
+    async def CreateEdgeAsync(self, edge: Edge, if_not_exists=False) -> Edge:
         try:
-            j = self._post("/authz/edges", json_data={"edge": edge.__dict__})
+            j = await self._post_async(
+                "/authz/edges", json_data={"edge": edge.__dict__}
+            )
             return Edge.from_json(j)
         except UserCloudsSDKError as e:
             if if_not_exists:
@@ -773,14 +807,14 @@ class Client:
                 return edge
             raise e
 
-    def GetEdge(self, id: uuid.UUID) -> Edge:
-        j = self._get(f"/authz/edges/{id}")
+    async def GetEdgeAsync(self, id: uuid.UUID) -> Edge:
+        j = await self._get_async(f"/authz/edges/{id}")
         return Edge.from_json(j)
 
-    def DeleteEdge(self, id: uuid.UUID):
-        return self._delete(f"/authz/edges/{id}")
+    async def DeleteEdgeAsync(self, id: uuid.UUID):
+        return await self._delete_async(f"/authz/edges/{id}")
 
-    def ListObjectTypes(
+    async def ListObjectTypesAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[ObjectType]:
         params: dict[str, str | int] = {}
@@ -789,16 +823,16 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/authz/objecttypes", params=params)
+        j = await self._get_async("/authz/objecttypes", params=params)
 
         object_types = [ObjectType.from_json(ot) for ot in j["data"]]
         return object_types
 
-    def CreateObjectType(
+    async def CreateObjectTypeAsync(
         self, object_type: ObjectType, if_not_exists=False
     ) -> ObjectType:
         try:
-            j = self._post(
+            j = await self._post_async(
                 "/authz/objecttypes", json_data={"object_type": object_type.__dict__}
             )
             return ObjectType.from_json(j)
@@ -808,14 +842,14 @@ class Client:
                 return object_type
             raise e
 
-    def GetObjectType(self, id: uuid.UUID) -> ObjectType:
-        j = self._get(f"/authz/objecttypes/{id}")
+    async def GetObjectTypeAsync(self, id: uuid.UUID) -> ObjectType:
+        j = await self._get_async(f"/authz/objecttypes/{id}")
         return ObjectType.from_json(j)
 
-    def DeleteObjectType(self, id: uuid.UUID):
-        return self._delete(f"/authz/objecttypes/{id}")
+    async def DeleteObjectTypeAsync(self, id: uuid.UUID):
+        return await self._delete_async(f"/authz/objecttypes/{id}")
 
-    def ListEdgeTypes(
+    async def ListEdgeTypesAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[EdgeType]:
         params: dict[str, str | int] = {}
@@ -824,14 +858,16 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/authz/edgetypes", params=params)
+        j = await self._get_async("/authz/edgetypes", params=params)
 
         edge_types = [EdgeType.from_json(et) for et in j["data"]]
         return edge_types
 
-    def CreateEdgeType(self, edge_type: EdgeType, if_not_exists=False) -> EdgeType:
+    async def CreateEdgeTypeAsync(
+        self, edge_type: EdgeType, if_not_exists=False
+    ) -> EdgeType:
         try:
-            j = self._post(
+            j = await self._post_async(
                 "/authz/edgetypes", json_data={"edge_type": edge_type.__dict__}
             )
             return EdgeType.from_json(j)
@@ -841,14 +877,14 @@ class Client:
                 return edge_type
             raise e
 
-    def GetEdgeType(self, id: uuid.UUID) -> EdgeType:
-        j = self._get(f"/authz/edgetypes/{id}")
+    async def GetEdgeTypeAsync(self, id: uuid.UUID) -> EdgeType:
+        j = await self._get_async(f"/authz/edgetypes/{id}")
         return EdgeType.from_json(j)
 
-    def DeleteEdgeType(self, id: uuid.UUID) -> bool:
-        return self._delete(f"/authz/edgetypes/{id}")
+    async def DeleteEdgeTypeAsync(self, id: uuid.UUID) -> bool:
+        return await self._delete_async(f"/authz/edgetypes/{id}")
 
-    def ListOrganizations(
+    async def ListOrganizationsAsync(
         self, limit: int = 0, starting_after: uuid.UUID | None = None
     ) -> list[Organization]:
         params: dict[str, str | int] = {}
@@ -857,16 +893,16 @@ class Client:
         if starting_after is not None:
             params["starting_after"] = f"id:{starting_after}"
         params["version"] = "3"
-        j = self._get("/authz/organizations", params=params)
+        j = await self._get_async("/authz/organizations", params=params)
 
         organizations = [Organization.from_json(o) for o in j["data"]]
         return organizations
 
-    def CreateOrganization(
+    async def CreateOrganizationAsync(
         self, organization: Organization, if_not_exists=False
     ) -> Organization:
         try:
-            json_data = self._post(
+            json_data = await self._post_async(
                 "/authz/organizations",
                 json_data={"organization": organization.__dict__},
             )
@@ -877,32 +913,32 @@ class Client:
                 return organization
             raise e
 
-    def GetOrganization(self, id: uuid.UUID) -> Organization:
-        json_data = self._get(f"/authz/organizations/{id}")
+    async def GetOrganizationAsync(self, id: uuid.UUID) -> Organization:
+        json_data = await self._get_async(f"/authz/organizations/{id}")
         return Organization.from_json(json_data)
 
-    def DeleteOrganization(self, id: uuid.UUID) -> bool:
-        return self._delete(f"/authz/organizations/{id}")
+    async def DeleteOrganizationAsync(self, id: uuid.UUID) -> bool:
+        return await self._delete_async(f"/authz/organizations/{id}")
 
-    def CheckAttribute(
+    async def CheckAttributeAsync(
         self,
         source_object_id: uuid.UUID,
         target_object_id: uuid.UUID,
         attribute_name: str,
     ) -> bool:
-        j = self._get(
+        j = await self._get_async(
             f"/authz/checkattribute?source_object_id={source_object_id}&target_object_id={target_object_id}&attribute={attribute_name}"
         )
         return j.get("has_attribute")
 
-    def DownloadUserstoreSDK(self, include_example=True) -> str:
-        return self._download(
+    async def DownloadUserstoreSDKAsync(self, include_example=True) -> str:
+        return await self._download_async(
             f"/userstore/download/codegensdk.py?include_example={include_example and 'true' or 'false'}"
         )
 
     # Access Token Helpers
 
-    def _get_access_token(self) -> str:
+    async def _get_access_token_async(self) -> str:
         # Encode the client ID and client secret
         headers = {
             "Authorization": f"Basic {self._authorization}",
@@ -913,16 +949,20 @@ class Client:
 
         # Note that we use requests directly here (instead of _post) because we don't
         # want to refresh the access token as we are trying to get it. :)
-        resp = self._client.post("/oidc/token", headers=headers, content=body)
+        resp = await self._client.post_async(
+            "/oidc/token", headers=headers, content=body
+        )
         if resp.status_code >= 400:
             raise UserCloudsSDKError.from_response(resp)
         json_data = ucjson.loads(resp.text)
         return json_data.get("access_token")
 
-    def _refresh_access_token_if_needed(self) -> None:
+    async def _refresh_access_token_if_needed_async(self) -> None:
         if self._access_token is None:
-            self._access_token = self._get_access_token()
-            return
+            async with self._access_token_lock:
+                if self._access_token is None:
+                    self._access_token = await self._get_access_token_async()
+                    return
 
         # TODO: this takes advantage of an implementation detail that we use JWTs for
         # access tokens, but we should probably either expose an endpoint to verify
@@ -934,7 +974,14 @@ class Client:
             )
             < time.time()
         ):
-            self._access_token = self._get_access_token()
+            async with self._access_token_lock:
+                if (
+                    jwt.decode(
+                        self._access_token, options={"verify_signature": False}
+                    ).get("exp")
+                    < time.time()
+                ):
+                    self._access_token = await self._get_access_token_async()
 
     # Request Helpers
 
@@ -943,8 +990,10 @@ class Client:
         headers.update(self._common_headers)
         return headers
 
-    def _prep_json_data(self, json_data: dict | str | None) -> tuple(dict, str | None):
-        self._refresh_access_token_if_needed()
+    async def _prep_json_data_async(
+        self, json_data: dict | str | None
+    ) -> tuple(dict, str | None):
+        await self._refresh_access_token_if_needed_async()
         headers = self._get_headers()
         content = None
         if json_data is not None:
@@ -954,30 +1003,38 @@ class Client:
             )
         return headers, content
 
-    def _get(self, url, params: dict[str, str | int] | None = None) -> dict:
-        self._refresh_access_token_if_needed()
-        resp = self._client.get(url, params=params, headers=self._get_headers())
+    async def _get_async(self, url, params: dict[str, str | int] | None = None) -> dict:
+        await self._refresh_access_token_if_needed_async()
+        resp = await self._client.get_async(
+            url, params=params, headers=self._get_headers()
+        )
         if resp.status_code >= 400:
             raise UserCloudsSDKError.from_response(resp)
         return ucjson.loads(resp.text)
 
-    def _post(self, url, json_data: dict | str | None = None) -> dict | list:
-        headers, content = self._prep_json_data(json_data)
-        resp = self._client.post(url, headers=headers, content=content)
+    async def _post_async(
+        self, url, json_data: dict | str | None = None
+    ) -> dict | list:
+        headers, content = await self._prep_json_data_async(json_data)
+        resp = await self._client.post_async(url, headers=headers, content=content)
         if resp.status_code >= 400:
             raise UserCloudsSDKError.from_response(resp)
         return ucjson.loads(resp.text)
 
-    def _put(self, url, json_data: dict | str | None = None) -> dict | list:
-        headers, content = self._prep_json_data(json_data)
-        resp = self._client.put(url, headers=headers, content=content)
+    async def _put_async(self, url, json_data: dict | str | None = None) -> dict | list:
+        headers, content = await self._prep_json_data_async(json_data)
+        resp = await self._client.put_async(url, headers=headers, content=content)
         if resp.status_code >= 400:
             raise UserCloudsSDKError.from_response(resp)
         return ucjson.loads(resp.text)
 
-    def _delete(self, url, params: dict[str, str | int] | None = None) -> bool:
-        self._refresh_access_token_if_needed()
-        resp = self._client.delete(url, params=params, headers=self._get_headers())
+    async def _delete_async(
+        self, url, params: dict[str, str | int] | None = None
+    ) -> bool:
+        await self._refresh_access_token_if_needed_async()
+        resp = await self._client.delete_async(
+            url, params=params, headers=self._get_headers()
+        )
 
         if resp.status_code == 404:
             return False
@@ -986,7 +1043,7 @@ class Client:
             raise UserCloudsSDKError.from_response(resp)
         return resp.status_code == 204
 
-    def _download(self, url) -> str:
-        self._refresh_access_token_if_needed()
-        resp = self._client.get(url, headers=self._get_headers())
+    async def _download_async(self, url) -> str:
+        await self._refresh_access_token_if_needed_async()
+        resp = await self._client.get_async(url, headers=self._get_headers())
         return resp.text
