@@ -17,6 +17,7 @@ from .models import (
     AccessPolicy,
     AccessPolicyTemplate,
     Column,
+    ColumnConsentedPurposes,
     ColumnRetentionDurationResponse,
     ColumnRetentionDurationsResponse,
     Edge,
@@ -140,6 +141,15 @@ class Client:
 
     def DeleteUser(self, id: uuid.UUID) -> bool:
         return self._delete(f"/authn/users/{id}")
+
+    def GetConsentedPurposesForUser(
+        self, id: uuid.UUID, columns: list[ResourceID] | None = None
+    ) -> list[ColumnConsentedPurposes]:
+        body = {"user_id": id}
+        if columns:
+            body["columns"] = [col.to_dict() for col in columns]
+        resp_json = self._post("userstore/api/consentedpurposes", json_data=body)
+        return [ColumnConsentedPurposes.from_json(p) for p in resp_json["data"]]
 
     # Userstore user methods (should be used along with Accessor and Mutator methods)
 
