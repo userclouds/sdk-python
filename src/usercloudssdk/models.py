@@ -107,6 +107,16 @@ class ResourceID:
     def from_json(cls, json_data: dict) -> ResourceID:
         return cls(id=json_data["id"], name=json_data["name"])
 
+    def to_dict(self) -> dict:
+        rsc_id = {}
+        if hasattr(self, "id"):
+            rsc_id["id"] = self.id
+        if hasattr(self, "name"):
+            rsc_id["name"] = self.name
+        if not rsc_id:
+            raise ValueError("ResourceID is empty")
+        return rsc_id
+
 
 class ColumnField:
     type: str
@@ -916,6 +926,25 @@ class APIErrorResponse:
                 else uuid.UUID(int=0)
             ),
             identical=json_data["identical"],
+        )
+
+
+class ColumnConsentedPurposes:
+    column: ResourceID
+    consented_purposes: list[ResourceID]
+
+    def __init__(
+        self, *, column: ResourceID, consented_purposes: list[ResourceID]
+    ) -> None:
+        self.column = column
+        self.consented_purposes = consented_purposes
+
+    @classmethod
+    def from_json(cls, data):
+        cps = data["consented_purposes"]
+        return cls(
+            column=ResourceID.from_json(data["column"]),
+            consented_purposes=[ResourceID.from_json(cp) for cp in cps],
         )
 
 
