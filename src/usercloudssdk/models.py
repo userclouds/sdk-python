@@ -360,6 +360,9 @@ class Accessor:
     def __str__(self) -> str:
         return f"Accessor - {self.name} - {self.id}"
 
+    def __repr__(self) -> str:
+        return f"Accessor(id={self.id}, name={self.name})"
+
 
 class ColumnInputConfig:
     column: ResourceID
@@ -430,7 +433,10 @@ class Mutator:
         )
 
     def __str__(self) -> str:
-        return f"mutator {self.name} - {self.id}"
+        return f"Mutator {self.name} - {self.id}"
+
+    def __repr__(self) -> str:
+        return f"Mutator(id={self.id}, name={self.name})"
 
 
 class AccessPolicyTemplate:
@@ -601,10 +607,10 @@ class Transformer:
         self.parameters = parameters
 
     def __repr__(self) -> str:
-        return f"Transformer({self.id})"
+        return f"Transformer(id={self.id}, name={self.name}))"
 
     def __str__(self) -> str:
-        return f"transformer {self.name} - {self.id}"
+        return f"Transformer {self.name} - {self.id}"
 
     def to_json(self) -> str:
         return ucjson.dumps(
