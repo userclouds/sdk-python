@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 - UNPUBLISHED
+
+- Add `__repr__` methods to some models to improve DX.
+
 ## 1.4.0 - 02-02-2024
 
 - Breaking change: ColumnInputConfig now has data member "normalizer", previously referred to as "validator"
@@ -10,7 +14,6 @@
 - Breaking change: Added AsyncClient class and UCHttpAsyncClient interface to support asynchronous requests. As part of this, Error class was consolidated into UserCloudsSDKError, which may break any customers referencing it.
 - Add support for column constraints, which enables custom composite columns as well as checks for immutability, uniqueness, and unique IDs within array columns
 - Deprecate TENANT_URL, CLIENT_ID and CLIENT_SECRET in favor of USERCLOUDS_TENANT_URL, USERCLOUDS_CLIENT_ID and USERCLOUDS_CLIENT_SECRET environment variables. The deprecated environment variables will be removed in a future release (they still work in this release).
-
 
 ## 1.3.0 - 11-12-2023
 
