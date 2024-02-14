@@ -123,66 +123,108 @@ def test_authz(client: Client) -> None:
 
     try:
         user = client.CreateObject(
-            Object(id=uuid.uuid4(), type_id=DocUserObjectType.id, alias="user")
+            object=Object(
+                id=uuid.UUID("ae8d376b-afe7-46ad-a0fb-6231b8e8fa65"),
+                type_id=DocUserObjectType.id,
+                alias="user",
+            ),
+            if_not_exists=True,
         )
         user = client.GetObject(user.id)  # no-op, just illustrative
         objects.append(user)
 
         group = client.CreateObject(
-            Object(id=uuid.uuid4(), type_id=GroupObjectType.id, alias="group")
+            object=Object(
+                id=uuid.UUID("feb567f0-93c0-4ce9-a761-f986da45e735"),
+                type_id=GroupObjectType.id,
+                alias="group",
+            ),
+            if_not_exists=True,
         )
         objects.append(group)
 
         folder1 = client.CreateObject(
-            Object(id=uuid.uuid4(), type_id=FolderObjectType.id, alias="folder1")
+            object=Object(
+                id=uuid.UUID("b20c5089-472e-48cd-880d-3207c01abe3c"),
+                type_id=FolderObjectType.id,
+                alias="folder1",
+            ),
+            if_not_exists=True,
         )
         objects.append(folder1)
 
         folder2 = client.CreateObject(
-            Object(id=uuid.uuid4(), type_id=FolderObjectType.id, alias="folder2")
+            object=Object(
+                id=uuid.UUID("9d4075cb-1cc4-49a9-ac84-efd0d7d7d7db"),
+                type_id=FolderObjectType.id,
+                alias="folder2",
+            ),
+            if_not_exists=True,
         )
         objects.append(folder2)
 
         folder3 = client.CreateObject(
-            Object(id=uuid.uuid4(), type_id=FolderObjectType.id, alias="folder3")
+            object=Object(
+                id=uuid.UUID("0155c517-937e-44b5-98cf-a6b1973c8895"),
+                type_id=FolderObjectType.id,
+                alias="folder3",
+            ),
+            if_not_exists=True,
         )
         objects.append(folder3)
 
         doc1 = client.CreateObject(
-            Object(id=uuid.uuid4(), type_id=DocumentObjectType.id, alias="doc1")
+            object=Object(
+                id=uuid.UUID("3879f0f6-534b-432c-af15-e24d8affa84d"),
+                type_id=DocumentObjectType.id,
+                alias="doc1",
+            ),
+            if_not_exists=True,
         )
         objects.append(doc1)
 
         doc2 = client.CreateObject(
-            Object(id=uuid.uuid4(), type_id=DocumentObjectType.id, alias="doc2")
+            object=Object(
+                id=uuid.UUID("e3a3c0d0-57fa-49b1-8e68-7ee751b63bbc"),
+                type_id=DocumentObjectType.id,
+                alias="doc2",
+            ),
+            if_not_exists=True,
         )
         objects.append(doc2)
 
         doc3 = client.CreateObject(
-            Object(id=uuid.uuid4(), type_id=DocumentObjectType.id, alias="doc3")
+            object=Object(
+                id=uuid.UUID("02570617-38eb-4753-9464-be96f0bdfbfb"),
+                type_id=DocumentObjectType.id,
+                alias="doc3",
+            ),
+            if_not_exists=True,
         )
         objects.append(doc3)
 
         # user is member of group
         edges.append(
             client.CreateEdge(
-                Edge(
-                    id=uuid.uuid4(),
+                edge=Edge(
+                    id=uuid.UUID("b08a2ae6-3b2a-48a7-8a2c-0b095889beb6"),
                     edge_type_id=UserMemberOfGroupEdgeType.id,
                     source_object_id=user.id,
                     target_object_id=group.id,
-                )
+                ),
+                if_not_exists=True,
             )
         )
 
         # user can view folder 1
         new_edge = client.CreateEdge(
-            Edge(
-                id=uuid.uuid4(),
+            edge=Edge(
+                id=uuid.UUID("0a7a6a49-c1d6-438d-9879-ef0d097587f1"),
                 edge_type_id=UserViewFolderEdgeType.id,
                 source_object_id=user.id,
                 target_object_id=folder1.id,
-            )
+            ),
+            if_not_exists=True,
         )
         new_edge = client.GetEdge(new_edge.id)  # no-op, just illustrative
         edges.append(new_edge)
@@ -190,48 +232,52 @@ def test_authz(client: Client) -> None:
         # folder 1 can view doc 1
         edges.append(
             client.CreateEdge(
-                Edge(
-                    id=uuid.uuid4(),
+                edge=Edge(
+                    id=uuid.UUID("7bbb9cd6-68da-41e5-aaec-36048433e838"),
                     edge_type_id=FolderViewDocEdgeType.id,
                     source_object_id=folder1.id,
                     target_object_id=doc1.id,
-                )
+                ),
+                if_not_exists=True,
             )
         )
 
         # folder 1 can view folder 2
         edges.append(
             client.CreateEdge(
-                Edge(
-                    id=uuid.uuid4(),
+                edge=Edge(
+                    id=uuid.UUID("1e51b1be-db56-4c43-9b77-55f6ab668c91"),
                     edge_type_id=FolderViewFolderEdgeType.id,
                     source_object_id=folder1.id,
                     target_object_id=folder2.id,
-                )
+                ),
+                if_not_exists=True,
             )
         )
 
         # folder 2 can view doc 2
         edges.append(
             client.CreateEdge(
-                Edge(
-                    id=uuid.uuid4(),
+                edge=Edge(
+                    id=uuid.UUID("50eb8ee9-d935-4664-bbf0-706331c390ff"),
                     edge_type_id=FolderViewDocEdgeType.id,
                     source_object_id=folder2.id,
                     target_object_id=doc2.id,
-                )
+                ),
+                if_not_exists=True,
             )
         )
 
         # folder 3 can view doc 3
         edges.append(
             client.CreateEdge(
-                Edge(
-                    id=uuid.uuid4(),
+                edge=Edge(
+                    id=uuid.UUID("2e493668-0ec9-403f-81b6-4b6db4414642"),
                     edge_type_id=FolderViewDocEdgeType.id,
                     source_object_id=folder3.id,
                     target_object_id=doc3.id,
-                )
+                ),
+                if_not_exists=True,
             )
         )
 
@@ -258,12 +304,13 @@ def test_authz(client: Client) -> None:
         # group can view folder3
         edges.append(
             client.CreateEdge(
-                Edge(
-                    id=uuid.uuid4(),
+                edge=Edge(
+                    id=uuid.UUID("55a7c046-d320-478b-96c2-40af430c6672"),
                     edge_type_id=GroupViewFolderEdgeType.id,
                     source_object_id=group.id,
                     target_object_id=folder3.id,
-                )
+                ),
+                if_not_exists=True,
             )
         )
 
