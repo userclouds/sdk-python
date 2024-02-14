@@ -123,7 +123,7 @@ class ColumnField:
     name: str
     camel_case_name: str
     struct_name: str
-    optional: bool
+    required: bool
     ignore_for_uniqueness: bool
 
     def __init__(
@@ -132,14 +132,14 @@ class ColumnField:
         name: str,
         camel_case_name: str = "",
         struct_name: str = "",
-        optional: bool = False,
+        required: bool = False,
         ignore_for_uniqueness: bool = False,
     ) -> None:
         self.type = type
         self.name = name
         self.camel_case_name = camel_case_name
         self.struct_name = struct_name
-        self.optional = optional
+        self.required = required
         self.ignore_for_uniqueness = ignore_for_uniqueness
 
     def to_json(self) -> str:
@@ -149,7 +149,7 @@ class ColumnField:
                 "name": self.name,
                 "camel_case_name": self.camel_case_name,
                 "struct_name": self.struct_name,
-                "optional": self.optional,
+                "required": self.required,
                 "ignore_for_uniqueness": self.ignore_for_uniqueness,
             }
         )
@@ -161,7 +161,7 @@ class ColumnField:
             name=json_data["name"],
             camel_case_name=json_data["camel_case_name"],
             struct_name=json_data["struct_name"],
-            optional=json_data["optional"],
+            required=json_data["required"],
             ignore_for_uniqueness=json_data["ignore_for_uniqueness"],
         )
 
@@ -596,7 +596,9 @@ class Transformer:
     id: uuid.UUID
     name: str
     input_type: str
+    input_type_constraints: ColumnConstraints
     output_type: str
+    output_type_constraints: ColumnConstraints
     reuse_existing_token: bool
     transform_type: str
     function: str
@@ -612,6 +614,8 @@ class Transformer:
         transform_type="",
         function="",
         parameters="",
+        input_type_constraints: ColumnConstraints | None = None,
+        output_type_constraints: ColumnConstraints | None = None,
     ) -> None:
         self.id = id
         self.name = name
@@ -621,6 +625,24 @@ class Transformer:
         self.transform_type = transform_type
         self.function = function
         self.parameters = parameters
+        if input_type_constraints is None:
+            self.input_type_constraints = ColumnConstraints(
+                immutable_required=False,
+                unique_id_required=False,
+                unique_required=False,
+                fields=[],
+            )
+        else:
+            self.input_type_constraints = input_type_constraints
+        if output_type_constraints is None:
+            self.output_type_constraints = ColumnConstraints(
+                immutable_required=False,
+                unique_id_required=False,
+                unique_required=False,
+                fields=[],
+            )
+        else:
+            self.output_type_constraints = output_type_constraints
 
     def __repr__(self) -> str:
         return f"Transformer(id={self.id}, name={self.name}))"
@@ -634,7 +656,9 @@ class Transformer:
                 "id": str(self.id),
                 "name": self.name,
                 "input_type": self.input_type,
+                "input_type_constraints": self.input_type_constraints,
                 "output_type": self.output_type,
+                "output_type_constraints": self.output_type_constraints,
                 "reuse_existing_token": self.reuse_existing_token,
                 "transform_type": self.transform_type,
                 "function": self.function,
@@ -648,7 +672,17 @@ class Transformer:
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
             input_type=json_data["input_type"],
+            input_type_constraints=(
+                json_data["input_type_constraints"]
+                if "input_type_constraints" in json_data
+                else None
+            ),
             output_type=json_data["output_type"],
+            output_type_constraints=(
+                json_data["output_type_constraints"]
+                if "output_type_constraints" in json_data
+                else None
+            ),
             reuse_existing_token=json_data["reuse_existing_token"],
             transform_type=json_data["transform_type"],
             function=json_data["function"],
