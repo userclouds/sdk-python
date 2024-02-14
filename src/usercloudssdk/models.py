@@ -264,6 +264,12 @@ class Column:
             constraints=json_data["constraints"],
         )
 
+    def __str__(self) -> str:
+        return f"Column {self.name} [{self.type}] - {self.id}"
+
+    def __repr__(self) -> str:
+        return f"Column(id={self.id}, name={self.name}, type={self.type})"
+
 
 class Purpose:
     id: uuid.UUID
