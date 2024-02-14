@@ -3,7 +3,7 @@
 ## 1.5.0 - UNPUBLISHED
 
 - Add GetConsentedPurposesForUser method to the Python SDK Client.
-- Add `__repr__` methods to some models to improve DX.
+- Add `__repr__` and `__str__` methods to some models to improve DX.
 
 ## 1.4.0 - 02-02-2024
 
