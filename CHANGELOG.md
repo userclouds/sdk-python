@@ -1,5 +1,10 @@
 # Changelog
 
+## UNPUBLISHED
+
+- Breaking change: ColumnField parameter "optional" has been changed to "required", with fields not required by default
+- Add "input_type_constraints" and "output_type_constraints" parameters of type ColumnConstraints to Transformer
+
 ## 1.5.0 - UNPUBLISHED
 
 - Add GetConsentedPurposesForUser method to the Python SDK Client.
