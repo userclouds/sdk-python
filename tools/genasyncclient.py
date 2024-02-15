@@ -17,7 +17,7 @@ import jwt
 
 from . import ucjson
 from .client_helpers import _SDK_VERSION, _id_from_identical_conflict, _read_env
-from .constants import _JSON_CONTENT_TYPE, AUTHN_TYPE_PASSWORD
+from .constants import _JSON_CONTENT_TYPE, AuthnType, Region
 from .errors import UserCloudsSDKError
 from .models import (
     Accessor,
@@ -136,7 +136,7 @@ non_auto_generated_footer = """
 
     async def _prep_json_data_async(
         self, json_data: dict | str | None
-    ) -> tuple(dict, str | None):
+    ) -> tuple[dict, str | None]:
         await self._refresh_access_token_if_needed_async()
         headers = self._get_headers()
         content = None

@@ -7,6 +7,13 @@ from dataclasses import asdict, dataclass
 import iso8601
 
 from . import ucjson
+from .constants import (
+    ColumnIndexType,
+    DataLifeCycleState,
+    DataType,
+    PolicyType,
+    TransformType,
+)
 
 
 class User:
@@ -119,7 +126,7 @@ class ResourceID:
 
 
 class ColumnField:
-    type: str
+    type: DataType
     name: str
     camel_case_name: str
     struct_name: str
@@ -128,14 +135,14 @@ class ColumnField:
 
     def __init__(
         self,
-        type: str,
+        type: str | DataType,
         name: str,
         camel_case_name: str = "",
         struct_name: str = "",
         required: bool = False,
         ignore_for_uniqueness: bool = False,
     ) -> None:
-        self.type = type
+        self.type = DataType(type)
         self.name = name
         self.camel_case_name = camel_case_name
         self.struct_name = struct_name
@@ -145,7 +152,7 @@ class ColumnField:
     def to_json(self) -> str:
         return ucjson.dumps(
             {
-                "type": self.type,
+                "type": self.type.value,
                 "name": self.name,
                 "camel_case_name": self.camel_case_name,
                 "struct_name": self.struct_name,
@@ -157,7 +164,7 @@ class ColumnField:
     @classmethod
     def from_json(cls, json_data: dict) -> ColumnField:
         return cls(
-            type=json_data["type"],
+            type=DataType(json_data["type"]),
             name=json_data["name"],
             camel_case_name=json_data["camel_case_name"],
             struct_name=json_data["struct_name"],
@@ -207,28 +214,28 @@ class ColumnConstraints:
 class Column:
     id: uuid.UUID
     name: str
-    type: str
+    type: DataType
     is_array: bool
     default_value: str
-    index_type: str
+    index_type: ColumnIndexType
     constraints: ColumnConstraints
 
     def __init__(
         self,
         id: uuid.UUID,
         name: str,
-        type: str,
+        type: str | DataType,
         is_array: bool,
         default_value: str,
-        index_type: str,
+        index_type: str | ColumnIndexType,
         constraints: ColumnConstraints | None = None,
     ) -> None:
         self.id = id
         self.name = name
-        self.type = type
+        self.type = DataType(type)
         self.is_array = is_array
         self.default_value = default_value
-        self.index_type = index_type
+        self.index_type = ColumnIndexType(index_type)
         if constraints is None:
             self.constraints = ColumnConstraints(
                 immutable_required=False,
@@ -244,10 +251,10 @@ class Column:
             {
                 "id": str(self.id),
                 "name": self.name,
-                "type": self.type,
+                "type": self.type.value,
                 "is_array": self.is_array,
                 "default_value": self.default_value,
-                "index_type": self.index_type,
+                "index_type": self.index_type.value,
                 "constraints": self.constraints,
             }
         )
@@ -257,10 +264,10 @@ class Column:
         return cls(
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
-            type=json_data["type"],
+            type=DataType(json_data["type"]),
             is_array=json_data["is_array"],
             default_value=json_data["default_value"],
-            index_type=json_data["index_type"],
+            index_type=ColumnIndexType(json_data["index_type"]),
             constraints=json_data["constraints"],
         )
 
@@ -320,6 +327,7 @@ class Accessor:
     token_access_policy: ResourceID | None
     selector_config: UserSelectorConfig
     purposes: list[ResourceID]
+    data_life_cycle_state: DataLifeCycleState
     version: int
 
     def __init__(
@@ -332,6 +340,7 @@ class Accessor:
         selector_config: UserSelectorConfig,
         purposes: list[ResourceID],
         token_access_policy: ResourceID | None = None,
+        data_life_cycle_state: str | DataLifeCycleState = DataLifeCycleState.LIVE,
         version: int = 0,
     ) -> None:
         self.id = id
@@ -342,6 +351,7 @@ class Accessor:
         self.selector_config = selector_config
         self.purposes = purposes
         self.token_access_policy = token_access_policy
+        self.data_life_cycle_state = DataLifeCycleState(data_life_cycle_state)
         self.version = version
 
     def to_json(self) -> str:
@@ -356,6 +366,7 @@ class Accessor:
                 "selector_config": self.selector_config.to_json(),
                 "purposes": self.purposes,
                 "token_access_policy": self.token_access_policy,
+                "data_life_cycle_state": self.data_life_cycle_state.value,
             }
         )
 
@@ -370,6 +381,9 @@ class Accessor:
             selector_config=UserSelectorConfig.from_json(json_data["selector_config"]),
             purposes=json_data["purposes"],
             token_access_policy=ResourceID.from_json(json_data["token_access_policy"]),
+            data_life_cycle_state=DataLifeCycleState(
+                json_data["data_life_cycle_state"]
+            ),
             version=json_data["version"],
         )
 
@@ -464,11 +478,11 @@ class AccessPolicyTemplate:
 
     def __init__(
         self,
-        id=uuid.UUID(int=0),
-        name="",
-        description="",
-        function="",
-        version=0,
+        id: uuid.UUID = uuid.UUID(int=0),
+        name: str = "",
+        description: str = "",
+        function: str = "",
+        version: int = 0,
     ) -> None:
         self.id = id
         self.name = name
@@ -502,7 +516,9 @@ class AccessPolicyTemplate:
 
 
 class AccessPolicyComponent:
-    def __init__(self, policy="", template="", template_parameters="") -> None:
+    def __init__(
+        self, policy: str = "", template: str = "", template_parameters: str = ""
+    ) -> None:
         if policy != "":
             setattr(self, "policy", policy)
         if template != "":
@@ -543,23 +559,23 @@ class AccessPolicy:
     id: uuid.UUID
     name: str
     description: str
-    policy_type: str
+    policy_type: PolicyType
     version: int
     components: list[AccessPolicyComponent]
 
     def __init__(
         self,
-        id=uuid.UUID(int=0),
-        name="",
-        description="",
-        policy_type="",
-        version=0,
-        components=[],
+        id: uuid.UUID = uuid.UUID(int=0),
+        name: str = "",
+        description: str = "",
+        policy_type: str | PolicyType = PolicyType.COMPOSITE_AND,
+        version: int = 0,
+        components: list[AccessPolicyComponent] = [],
     ) -> None:
         self.id = id
         self.name = name
         self.description = description
-        self.policy_type = policy_type
+        self.policy_type = PolicyType(policy_type)
         self.version = version
         self.components = components
 
@@ -572,7 +588,7 @@ class AccessPolicy:
                 "id": str(self.id),
                 "name": self.name,
                 "description": self.description,
-                "policy_type": self.policy_type,
+                "policy_type": self.policy_type.value,
                 "version": self.version,
                 "components": [c.to_json() for c in self.components],
             }
@@ -584,7 +600,7 @@ class AccessPolicy:
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
             description=json_data["description"],
-            policy_type=json_data["policy_type"],
+            policy_type=PolicyType(json_data["policy_type"]),
             version=json_data["version"],
             components=[
                 AccessPolicyComponent.from_json(apc) for apc in json_data["components"]
@@ -595,34 +611,34 @@ class AccessPolicy:
 class Transformer:
     id: uuid.UUID
     name: str
-    input_type: str
+    input_type: DataType
     input_type_constraints: ColumnConstraints
-    output_type: str
+    output_type: DataType
     output_type_constraints: ColumnConstraints
     reuse_existing_token: bool
-    transform_type: str
+    transform_type: TransformType
     function: str
     parameters: str
 
     def __init__(
         self,
-        id=uuid.UUID(int=0),
-        name="",
-        input_type="",
-        output_type="",
-        reuse_existing_token=False,
-        transform_type="",
-        function="",
-        parameters="",
+        id: uuid.UUID = uuid.UUID(int=0),
+        name: str = "",
+        input_type: str | DataType = DataType.STRING,
+        output_type: str | DataType = DataType.STRING,
+        reuse_existing_token: bool = False,
+        transform_type: str | TransformType = TransformType.PASSTHROUGH,
+        function: str = "",
+        parameters: str = "",
         input_type_constraints: ColumnConstraints | None = None,
         output_type_constraints: ColumnConstraints | None = None,
     ) -> None:
         self.id = id
         self.name = name
-        self.input_type = input_type
-        self.output_type = output_type
+        self.input_type = DataType(input_type)
+        self.output_type = DataType(output_type)
         self.reuse_existing_token = reuse_existing_token
-        self.transform_type = transform_type
+        self.transform_type = TransformType(transform_type)
         self.function = function
         self.parameters = parameters
         if input_type_constraints is None:
@@ -655,12 +671,12 @@ class Transformer:
             {
                 "id": str(self.id),
                 "name": self.name,
-                "input_type": self.input_type,
+                "input_type": self.input_type.value,
                 "input_type_constraints": self.input_type_constraints,
-                "output_type": self.output_type,
+                "output_type": self.output_type.value,
                 "output_type_constraints": self.output_type_constraints,
                 "reuse_existing_token": self.reuse_existing_token,
-                "transform_type": self.transform_type,
+                "transform_type": self.transform_type.value,
                 "function": self.function,
                 "parameters": self.parameters,
             },
@@ -671,20 +687,20 @@ class Transformer:
         return cls(
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
-            input_type=json_data["input_type"],
+            input_type=DataType(json_data["input_type"]),
             input_type_constraints=(
                 json_data["input_type_constraints"]
                 if "input_type_constraints" in json_data
                 else None
             ),
-            output_type=json_data["output_type"],
+            output_type=DataType(json_data["output_type"]),
             output_type_constraints=(
                 json_data["output_type_constraints"]
                 if "output_type_constraints" in json_data
                 else None
             ),
             reuse_existing_token=json_data["reuse_existing_token"],
-            transform_type=json_data["transform_type"],
+            transform_type=TransformType(json_data["transform_type"]),
             function=json_data["function"],
             parameters=json_data["parameters"],
         )
@@ -718,29 +734,29 @@ class RetentionDuration:
 
 
 class ColumnRetentionDuration:
-    duration_type: str
+    duration_type: DataLifeCycleState
+    duration: RetentionDuration
     id: uuid.UUID
     column_id: uuid.UUID
     purpose_id: uuid.UUID
-    duration: RetentionDuration
     use_default: bool
-    default_duration: RetentionDuration
+    default_duration: RetentionDuration | None
     purpose_name: str
     version: int
 
     def __init__(
         self,
-        duration_type,
-        duration,
-        id=uuid.UUID(int=0),
-        column_id=uuid.UUID(int=0),
-        purpose_id=uuid.UUID(int=0),
-        use_default=False,
-        default_duration=None,
-        purpose_name=None,
-        version=0,
+        duration_type: str | DataLifeCycleState,
+        duration: RetentionDuration,
+        id: uuid.UUID = uuid.UUID(int=0),
+        column_id: uuid.UUID = uuid.UUID(int=0),
+        purpose_id: uuid.UUID = uuid.UUID(int=0),
+        use_default: bool = False,
+        default_duration: RetentionDuration = None,
+        purpose_name: str = None,
+        version: int = 0,
     ):
-        self.duration_type = duration_type
+        self.duration_type = DataLifeCycleState(duration_type)
         self.id = id
         self.column_id = column_id
         self.purpose_id = purpose_id
@@ -759,7 +775,7 @@ class ColumnRetentionDuration:
         )
         return ucjson.dumps(
             {
-                "duration_type": self.duration_type,
+                "duration_type": self.duration_type.value,
                 "id": str(self.id),
                 "column_id": str(self.column_id),
                 "purpose_id": str(self.purpose_id),
@@ -774,7 +790,7 @@ class ColumnRetentionDuration:
     @classmethod
     def from_json(cls, data):
         return cls(
-            data["duration_type"],
+            DataLifeCycleState(data["duration_type"]),
             RetentionDuration.from_json(data["duration"]),
             uuid.UUID(data["id"]),
             uuid.UUID(data["column_id"]),
@@ -791,7 +807,7 @@ class UpdateColumnRetentionDurationRequest:
 
     def __init__(
         self,
-        retention_duration,
+        retention_duration: ColumnRetentionDuration,
     ):
         self.retention_duration = retention_duration
 
@@ -815,7 +831,7 @@ class UpdateColumnRetentionDurationsRequest:
 
     def __init__(
         self,
-        retention_durations,
+        retention_durations: list[ColumnRetentionDuration],
     ):
         self.retention_durations = retention_durations
 
@@ -845,8 +861,8 @@ class ColumnRetentionDurationResponse:
 
     def __init__(
         self,
-        max_duration,
-        retention_duration,
+        max_duration: RetentionDuration,
+        retention_duration: ColumnRetentionDuration,
     ):
         self.max_duration = max_duration
         self.retention_duration = retention_duration
@@ -868,8 +884,8 @@ class ColumnRetentionDurationsResponse:
 
     def __init__(
         self,
-        max_duration,
-        retention_durations,
+        max_duration: RetentionDuration,
+        retention_durations: list[ColumnRetentionDuration],
     ):
         self.max_duration = max_duration
         self.retention_durations = retention_durations
@@ -898,7 +914,15 @@ class InspectTokenResponse:
     transformer: Transformer
     access_policy: AccessPolicy
 
-    def __init__(self, id, token, created, updated, transformer, access_policy):
+    def __init__(
+        self,
+        id: uuid.UUID,
+        token: str,
+        created: datetime.datetime,
+        updated: datetime.datetime,
+        transformer: Transformer,
+        access_policy: AccessPolicy,
+    ):
         self.id = id
         self.token = token
 
@@ -939,7 +963,9 @@ class APIErrorResponse:
     secondary_id: uuid.UUID
     identical: bool
 
-    def __init__(self, error, id, secondary_id, identical):
+    def __init__(
+        self, error: str, id: uuid.UUID, secondary_id: uuid.UUID, identical: bool
+    ):
         self.error = error
         self.id = id
         self.secondary_id = secondary_id

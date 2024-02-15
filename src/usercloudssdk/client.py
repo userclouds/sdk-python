@@ -10,7 +10,7 @@ import jwt
 
 from . import ucjson
 from .client_helpers import _SDK_VERSION, _id_from_identical_conflict, _read_env
-from .constants import _JSON_CONTENT_TYPE, AUTHN_TYPE_PASSWORD
+from .constants import _JSON_CONTENT_TYPE, AuthnType, Region
 from .errors import UserCloudsSDKError
 from .models import (
     Accessor,
@@ -82,8 +82,10 @@ class Client:
         self,
         id: uuid.UUID | None = None,
         organization_id: uuid.UUID | None = None,
-        region: str | None = None,
+        region: str | Region | None = None,
     ) -> uuid.UUID:
+        if isinstance(region, Region):
+            region = region.value
         body = {
             "id": id,
             "organization_id": organization_id,
@@ -98,12 +100,14 @@ class Client:
         password: str,
         id: uuid.UUID | None = None,
         organization_id: uuid.UUID | None = None,
-        region: str | None = None,
+        region: str | Region | None = None,
     ) -> uuid.UUID:
+        if isinstance(region, Region):
+            region = region.value
         body = {
             "username": username,
             "password": password,
-            "authn_type": AUTHN_TYPE_PASSWORD,
+            "authn_type": AuthnType.PASSWORD.value,
             "id": id,
             "organization_id": organization_id,
             "region": region,
@@ -160,8 +164,10 @@ class Client:
         row_data: dict,
         id: uuid.UUID | None = None,
         organization_id: uuid.UUID | None = None,
-        region: str | None = None,
+        region: str | Region | None = None,
     ) -> uuid.UUID:
+        if isinstance(region, Region):
+            region = region.value
         body = {
             "mutator_id": mutator_id,
             "context": context,
@@ -955,7 +961,7 @@ class Client:
         headers.update(self._common_headers)
         return headers
 
-    def _prep_json_data(self, json_data: dict | str | None) -> tuple(dict, str | None):
+    def _prep_json_data(self, json_data: dict | str | None) -> tuple[dict, str | None]:
         self._refresh_access_token_if_needed()
         headers = self._get_headers()
         content = None
