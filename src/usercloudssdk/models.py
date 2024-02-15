@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 import iso8601
 
@@ -990,6 +990,8 @@ class ColumnConsentedPurposes:
 
 @dataclass
 class Address:
+    """Address dataclass for usercloudssdk - can be used with columns of address type when creating or modifying users"""
+
     country: str | None = None
     name: str | None = None
     organization: str | None = None
@@ -1015,6 +1017,9 @@ class Address:
             post_code=json_data["post_code"],
             sorting_code=json_data["sorting_code"],
         )
+
+    def to_dict(self) -> dict:
+        return {k: v for k, v in asdict(self).items() if v}
 
 
 @dataclass
