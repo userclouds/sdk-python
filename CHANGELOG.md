@@ -9,6 +9,7 @@
 
 - Add GetConsentedPurposesForUser method to the Python SDK Client.
 - Add `__repr__` and `__str__` methods to some models to improve DX.
+- Add `to_dict()` method to the Address class to make it easier to serialize it into user row when creating or modifying a user.
 
 ## 1.4.0 - 02-02-2024
 
