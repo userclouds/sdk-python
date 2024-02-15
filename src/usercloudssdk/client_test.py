@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+
 from usercloudssdk.client import Client
 from usercloudssdk.errors import UserCloudsSDKError
 

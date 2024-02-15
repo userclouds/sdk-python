@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 
 import pytest
+
 from authz_sample import run_authz_sample
 from tokenizer_sample import run_tokenizer_sample
 from usercloudssdk.client import Client
