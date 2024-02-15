@@ -9,15 +9,12 @@ import warnings
 from usercloudssdk.asyncclient import AsyncClient
 from usercloudssdk.client import Client
 from usercloudssdk.constants import (
-    COLUMN_INDEX_TYPE_INDEXED,
-    COLUMN_INDEX_TYPE_NONE,
-    DATA_TYPE_ADDRESS,
-    DATA_TYPE_BOOLEAN,
-    DATA_TYPE_COMPOSITE,
-    DATA_TYPE_STRING,
-    POLICY_TYPE_COMPOSITE_AND,
-    TRANSFORM_TYPE_TOKENIZE_BY_VALUE,
-    TRANSFORM_TYPE_TRANSFORM,
+    ColumnIndexType,
+    DataLifeCycleState,
+    DataType,
+    PolicyType,
+    Region,
+    TransformType,
 )
 from usercloudssdk.models import (
     Accessor,
@@ -78,10 +75,10 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
         Column(
             id=None,
             name="temp_column",
-            type=DATA_TYPE_BOOLEAN,
+            type=DataType.BOOLEAN,
             is_array=False,
             default_value="",
-            index_type=COLUMN_INDEX_TYPE_NONE,
+            index_type=ColumnIndexType.NONE,
         ),
         if_not_exists=True,
     )
@@ -96,10 +93,10 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
         Column(
             id=None,
             name=_PHONE_NUMBER_COLUMN_NAME,
-            type=DATA_TYPE_STRING,
+            type=DataType.STRING,
             is_array=False,
             default_value="",
-            index_type=COLUMN_INDEX_TYPE_INDEXED,
+            index_type=ColumnIndexType.INDEXED,
         ),
         if_not_exists=True,
     )
@@ -108,10 +105,10 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
         Column(
             id=None,
             name="home_addresses",
-            type=DATA_TYPE_ADDRESS,
+            type=DataType.ADDRESS,
             is_array=True,
             default_value="",
-            index_type=COLUMN_INDEX_TYPE_NONE,
+            index_type=ColumnIndexType.NONE,
         ),
         if_not_exists=True,
     )
@@ -120,10 +117,10 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
         Column(
             id=None,
             name=_EMAIL_COLUMN_NAME,
-            type=DATA_TYPE_STRING,
+            type=DataType.STRING,
             is_array=False,
             default_value="",
-            index_type=COLUMN_INDEX_TYPE_INDEXED,
+            index_type=ColumnIndexType.INDEXED,
         ),
         if_not_exists=True,
     )
@@ -132,19 +129,19 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
         Column(
             id=None,
             name="usa_address",
-            type=DATA_TYPE_COMPOSITE,
+            type=DataType.COMPOSITE,
             is_array=False,
             default_value="",
-            index_type=COLUMN_INDEX_TYPE_NONE,
+            index_type=ColumnIndexType.NONE,
             constraints=ColumnConstraints(
                 immutable_required=False,
                 unique_id_required=False,
                 unique_required=False,
                 fields=[
-                    ColumnField(type=DATA_TYPE_STRING, name="Street_Address"),
-                    ColumnField(type=DATA_TYPE_STRING, name="City"),
-                    ColumnField(type=DATA_TYPE_STRING, name="State"),
-                    ColumnField(type=DATA_TYPE_STRING, name="Zip"),
+                    ColumnField(type=DataType.STRING, name="Street_Address"),
+                    ColumnField(type=DataType.STRING, name="City"),
+                    ColumnField(type=DataType.STRING, name="State"),
+                    ColumnField(type=DataType.STRING, name="Zip"),
                 ],
             ),
         ),
@@ -204,7 +201,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
     column_rd_update = UpdateColumnRetentionDurationsRequest(
         [
             ColumnRetentionDuration(
-                duration_type="softdeleted",
+                duration_type=DataLifeCycleState.SOFT_DELETED,
                 duration=RetentionDuration(unit="month", duration=3),
                 column_id=phone_number.id,
                 purpose_id=support.id,
@@ -229,7 +226,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
     # retain all soft-deleted values for any column or purpose for 1 week by default
     tenant_rd_update = UpdateColumnRetentionDurationRequest(
         ColumnRetentionDuration(
-            duration_type="softdeleted",
+            duration_type=DataLifeCycleState.SOFT_DELETED,
             duration=RetentionDuration(unit="week", duration=1),
         ),
     )
@@ -253,7 +250,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
     # retain soft-deleted values for any column with a security purpose for 1 year by default
     purpose_rd_update = UpdateColumnRetentionDurationRequest(
         ColumnRetentionDuration(
-            duration_type="softdeleted",
+            duration_type=DataLifeCycleState.SOFT_DELETED,
             duration=RetentionDuration(unit="year", duration=1),
             purpose_id=security.id,
         ),
@@ -282,7 +279,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
 
     ap = AccessPolicy(
         name="PIIAccessForSecurityandSupport",
-        policy_type=POLICY_TYPE_COMPOSITE_AND,
+        policy_type=PolicyType.COMPOSITE_AND,
         components=[
             AccessPolicyComponent(
                 template=ResourceID(name="PIIAccessPolicyTemplate"),
@@ -312,10 +309,10 @@ function transform(data, params) {
     support_phone_transformer = Transformer(
         id=None,
         name="PIITransformerForSupport",
-        input_type=DATA_TYPE_STRING,
-        output_type=DATA_TYPE_STRING,
+        input_type=DataType.STRING,
+        output_type=DataType.STRING,
         reuse_existing_token=False,
-        transform_type=TRANSFORM_TYPE_TRANSFORM,
+        transform_type=TransformType.TRANSFORM,
         function=phone_transformer_function,
         parameters='{"team": "support_team"}',
     )
@@ -326,10 +323,10 @@ function transform(data, params) {
     security_phone_transformer = Transformer(
         id=None,
         name="PIITransformerForSecurity",
-        input_type=DATA_TYPE_STRING,
-        output_type=DATA_TYPE_STRING,
+        input_type=DataType.STRING,
+        output_type=DataType.STRING,
         reuse_existing_token=False,
-        transform_type=TRANSFORM_TYPE_TRANSFORM,
+        transform_type=TransformType.TRANSFORM,
         function=phone_transformer_function,
         parameters='{"team": "security_team"}',
     )
@@ -363,10 +360,10 @@ function id(len) {
     logging_phone_transformer = Transformer(
         id=None,
         name="PIITransformerForLogging",
-        input_type=DATA_TYPE_STRING,
-        output_type=DATA_TYPE_STRING,
+        input_type=DataType.STRING,
+        output_type=DataType.STRING,
         reuse_existing_token=True,  # Set this is to false to get a unique token every time this transformer is called vs getting same token on every call
-        transform_type=TRANSFORM_TYPE_TOKENIZE_BY_VALUE,
+        transform_type=TransformType.TOKENIZE_BY_VALUE,
         function=phone_tokenizing_transformer_function,
         parameters='{"team": "security_team"}',
     )
@@ -414,6 +411,7 @@ function id(len) {
         access_policy=ResourceID(id=ap.id),
         selector_config=UserSelectorConfig("{id} = ?"),
         purposes=[ResourceID(name="support")],
+        data_life_cycle_state=DataLifeCycleState.LIVE,
     )
     acc_support = client.CreateAccessor(acc_support, if_not_exists=True)
 
@@ -457,6 +455,7 @@ function id(len) {
             + "{phone_number} = (?)"
         ),
         purposes=[_SECURITY_PURPOSE_RESOURCE_ID],
+        data_life_cycle_state=DataLifeCycleState.LIVE,
     )
     acc_security = client.CreateAccessor(acc_security, if_not_exists=True)
 
@@ -489,6 +488,7 @@ function id(len) {
         access_policy=ResourceID(id=AccessPolicyOpen.id),
         selector_config=UserSelectorConfig("{id} = ?"),
         purposes=[_SECURITY_PURPOSE_RESOURCE_ID],
+        data_life_cycle_state=DataLifeCycleState.LIVE,
     )
     acc_marketing = client.CreateAccessor(acc_marketing, if_not_exists=True)
 
@@ -506,6 +506,7 @@ function id(len) {
         selector_config=UserSelectorConfig("{id} = ?"),
         purposes=[_SECURITY_PURPOSE_RESOURCE_ID],
         token_access_policy=ResourceID(id=AccessPolicyOpen.id),
+        data_life_cycle_state=DataLifeCycleState.LIVE,
     )
     acc_logging = client.CreateAccessor(acc_logging, if_not_exists=True)
 
@@ -618,6 +619,7 @@ def example(
                 ],
             },
         },
+        region=Region.AWS_US_EAST_1,
     )
 
     # set the user's info using the mutator

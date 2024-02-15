@@ -4,11 +4,7 @@ import functools
 import os
 
 from usercloudssdk.client import Client
-from usercloudssdk.constants import (
-    DATA_TYPE_STRING,
-    POLICY_TYPE_COMPOSITE_AND,
-    TRANSFORM_TYPE_TRANSFORM,
-)
+from usercloudssdk.constants import DataType, PolicyType, TransformType
 from usercloudssdk.errors import UserCloudsSDKError
 from usercloudssdk.models import (
     AccessPolicy,
@@ -46,7 +42,7 @@ def test_access_policies(client: Client):
 
     new_ap = AccessPolicy(
         name="test_access_policy",
-        policy_type=POLICY_TYPE_COMPOSITE_AND,
+        policy_type=PolicyType.COMPOSITE_AND,
         components=[
             AccessPolicyComponent(
                 template=ResourceID(name="test_template"), template_parameters="{}"
@@ -130,8 +126,8 @@ def test_access_policies(client: Client):
 def test_transformers(client: Client):
     new_gp = Transformer(
         name="test_transformer",
-        input_type=DATA_TYPE_STRING,
-        transform_type=TRANSFORM_TYPE_TRANSFORM,
+        input_type=DataType.STRING,
+        transform_type=TransformType.PASSTHROUGH,
         function="function transform(x, y) { return 'token' };",
         parameters="{}",
     )
