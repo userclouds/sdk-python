@@ -301,6 +301,12 @@ class Purpose:
             description=json_data["description"],
         )
 
+    def __str__(self) -> str:
+        return f"Purpose {self.name} - {self.id}"
+
+    def __repr__(self) -> str:
+        return f"Purpose(id={self.id}, name={self.name})"
+
 
 class ColumnOutputConfig:
     column: ResourceID
