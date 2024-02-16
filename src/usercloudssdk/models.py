@@ -32,6 +32,12 @@ class User:
             }
         )
 
+    def __str__(self) -> str:
+        return f"User {self.id} - {self.profile}"
+
+    def __repr__(self) -> str:
+        return f"User(id={self.id}, profile={self.profile})"
+
     @classmethod
     def from_json(cls, json_data: dict) -> User:
         return cls(
@@ -83,6 +89,12 @@ class UserSelectorConfig:
 
     def __init__(self, where_clause: str) -> None:
         self.where_clause = where_clause
+
+    def __repr__(self) -> str:
+        return f"UserSelectorConfig({self.where_clause})"
+
+    def __str__(self) -> str:
+        return f"UserSelectorConfig: {self.where_clause}"
 
     def to_json(self) -> str:
         return ucjson.dumps({"where_clause": self.where_clause})
@@ -496,8 +508,11 @@ class AccessPolicyTemplate:
         self.function = function
         self.version = version
 
+    def __str__(self) -> str:
+        return f"AccessPolicyTemplate {self.name} - {self.id}"
+
     def __repr__(self) -> str:
-        return f"AccessPolicyTemplate({self.id})"
+        return f"AccessPolicyTemplate(id={self.id}, name={self.name})"
 
     def to_json(self) -> str:
         return ucjson.dumps(
@@ -585,8 +600,11 @@ class AccessPolicy:
         self.version = version
         self.components = components
 
+    def __str__(self) -> str:
+        return f"AccessPolicy {self.name}[{self.policy_type}] - {self.id}"
+
     def __repr__(self) -> str:
-        return f"AccessPolicy({self.id})"
+        return f"AccessPolicy(id={self.id}, name={self.name}, policy_type={self.policy_type}, version={self.version}, components={self.components})"
 
     def to_json(self) -> str:
         return ucjson.dumps(
@@ -720,7 +738,7 @@ class RetentionDuration:
         self.unit = unit
         self.duration = duration
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"RetentionDuration(unit: '{self.unit}', duration: '{self.duration}')"
 
     def to_json(self) -> str:
