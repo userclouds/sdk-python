@@ -1,6 +1,8 @@
 # Changelog
 
-## UNPUBLISHED
+## 1.5.1 - 15-02-2024
+
+- Fix minor issue with userstore_sample.py
 
 ## 1.5.0 - 15-02-2024
 

@@ -619,7 +619,7 @@ def example(
                 ],
             },
         },
-        region=Region.AWS_US_EAST_1,
+        region=Region.AWS_US_WEST_2,
     )
 
     # set the user's info using the mutator
