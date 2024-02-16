@@ -6,6 +6,7 @@ import time
 import urllib.parse
 import uuid
 from dataclasses import asdict
+from pathlib import Path
 
 import jwt
 
@@ -955,6 +956,10 @@ class AsyncClient:
         return await self._download_async(
             f"/userstore/download/codegensdk.py?include_example={include_example and 'true' or 'false'}"
         )
+
+    async def SaveUserstoreSDKAsync(self, path: Path) -> None:
+        sdk = self.DownloadUserstoreSDK()
+        path.write_text(sdk)
 
     # Access Token Helpers
 

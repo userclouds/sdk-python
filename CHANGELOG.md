@@ -2,16 +2,16 @@
 
 ## UNPUBLISHED
 
-- Breaking change: ColumnField parameter "optional" has been changed to "required", with fields not required by default
-- Add "input_type_constraints" and "output_type_constraints" parameters of type ColumnConstraints to Transformer
-
-## 1.5.0 - UNPUBLISHED
+## 1.5.0 - 15-02-2024
 
 - Add GetConsentedPurposesForUser method to the Python SDK Client.
 - Add `__repr__` and `__str__` methods to some models to improve DX.
 - Add `to_dict()` method to the Address class to make it easier to serialize it into user row when creating or modifying a user.
 - Add Region enum and move a lot of other constants into enums (AuthnType, ColumnIndexType, DataLifeCycleState, DataType, PolicyType, TransformType).
 - Add `data_life_cycle_state` to Accessor model.
+- Breaking change: ColumnField parameter "optional" has been changed to "required", with fields not required by default
+- Add "input_type_constraints" and "output_type_constraints" parameters of type ColumnConstraints to Transformer
+- Add `SaveUserstoreSDK` that saves the generated userstore python SDK to a file.
 
 ## 1.4.0 - 02-02-2024
 
