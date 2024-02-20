@@ -3,6 +3,7 @@
 ## 1.6.0 - UNRELEASED
 
 - Update SaveUserstoreSDKAsync to use DownloadUserstoreSDKAsync, and allow passing include_example argument to those APIs.
+- Add `__repr__` and `__str__` methods to some models to improve DX.
 
 ## 1.5.1 - 15-02-2024
 
