@@ -112,12 +112,13 @@ class ResourceID:
             setattr(self, "name", name)
 
     def __repr__(self) -> str:
+        if hasattr(self, "id") and hasattr(self, "name"):
+            return f"ResourceID(id={self.id}, name={self.name})"
         if hasattr(self, "id"):
             return f"ResourceID({self.id})"
-        elif hasattr(self, "name"):
+        if hasattr(self, "name"):
             return f"ResourceID({self.name})"
-        else:
-            return "ResourceID()"
+        return "ResourceID()"
 
     def isValid(self) -> bool:
         return hasattr(self, "id") or hasattr(self, "name")
@@ -161,6 +162,12 @@ class ColumnField:
         self.required = required
         self.ignore_for_uniqueness = ignore_for_uniqueness
 
+    def __str__(self) -> str:
+        return f"ColumnField: {self.name} [{self.type}]"
+
+    def __repr__(self) -> str:
+        return f"ColumnField(type={self.type}, name={self.name}, camel_case_name={self.camel_case_name}, struct_name={self.struct_name}, required={self.required}, ignore_for_uniqueness={self.ignore_for_uniqueness})"
+
     def to_json(self) -> str:
         return ucjson.dumps(
             {
@@ -202,6 +209,12 @@ class ColumnConstraints:
         self.unique_id_required = unique_id_required
         self.unique_required = unique_required
         self.fields = fields
+
+    def __str__(self) -> str:
+        return f"ColumnConstraints: immutable_required={self.immutable_required}, unique_id_required={self.unique_id_required}, unique_required={self.unique_required}, fields={self.fields}"
+
+    def __repr__(self) -> str:
+        return f"ColumnConstraints(immutable_required={self.immutable_required}, unique_id_required={self.unique_id_required}, unique_required={self.unique_required}, fields={self.fields!r})"
 
     def to_json(self) -> str:
         return ucjson.dumps(
@@ -328,6 +341,12 @@ class ColumnOutputConfig:
         self.column = column
         self.transformer = transformer
 
+    def __str__(self) -> str:
+        return f"ColumnOutputConfig: {self.column} - {self.transformer}"
+
+    def __repr__(self) -> str:
+        return f"ColumnOutputConfig(column={self.column!r}, transformer={self.transformer!r})"
+
     @classmethod
     def from_json(cls, json_data: dict) -> ColumnOutputConfig:
         return ColumnOutputConfig(
@@ -419,6 +438,14 @@ class ColumnInputConfig:
     def __init__(self, column: ResourceID, normalizer: ResourceID) -> None:
         self.column = column
         self.normalizer = normalizer
+
+    def __str__(self) -> str:
+        return f"ColumnInputConfig: {self.column} - {self.normalizer}"
+
+    def __repr__(self) -> str:
+        return (
+            f"ColumnInputConfig(column={self.column!r}, normalizer={self.normalizer!r})"
+        )
 
     @classmethod
     def from_json(cls, json_data: dict) -> ColumnInputConfig:
@@ -546,13 +573,17 @@ class AccessPolicyComponent:
             setattr(self, "template", template)
             setattr(self, "template_parameters", template_parameters)
 
+    def __str__(self) -> str:
+        return f"AccessPolicyComponent: policy:{self.policy} template:{self.template} [{self.template_parameters}]"
+
     def __repr__(self) -> str:
+        if hasattr(self, "policy") and hasattr(self, "template"):
+            return f"AccessPolicyComponent(policy={self.policy}, template={self.template}, template_parameters={self.template_parameters})"
+        if hasattr(self, "template"):
+            return f"AccessPolicyComponent(template={self.template})"
         if hasattr(self, "policy"):
-            return f"AccessPolicyComponent({self.policy})"
-        elif hasattr(self, "template"):
-            return f"AccessPolicyComponent({self.template})"
-        else:
-            return "AccessPolicyComponent()"
+            return f"AccessPolicyComponent(policy={self.policy})"
+        return "AccessPolicyComponent()"
 
     def to_json(self) -> str:
         obj = {}
@@ -738,6 +769,9 @@ class RetentionDuration:
         self.unit = unit
         self.duration = duration
 
+    def __repr__(self) -> str:
+        return f"RetentionDuration(unit={self.unit}, duration={self.duration})"
+
     def __str__(self) -> str:
         return f"RetentionDuration(unit: '{self.unit}', duration: '{self.duration}')"
 
@@ -914,8 +948,11 @@ class ColumnRetentionDurationsResponse:
         self.max_duration = max_duration
         self.retention_durations = retention_durations
 
-    def __repr__(self):
+    def __str__(self):
         return f"ColumnRetentionDurationsResponse(max_duration: '{self.max_duration}', retention_durations: '{self.retention_durations}')"
+
+    def __repr__(self):
+        return f"ColumnRetentionDurationsResponse(max_duration={self.max_duration!r}, retention_durations={self.retention_durations!r})"
 
     @classmethod
     def from_json(cls, data):
@@ -1036,6 +1073,12 @@ class ColumnConsentedPurposes:
             column=ResourceID.from_json(data["column"]),
             consented_purposes=[ResourceID.from_json(cp) for cp in cps],
         )
+
+    def __repr__(self) -> str:
+        return f"ColumnConsentedPurposes(column={self.column!r}, consented_purposes={self.consented_purposes!r})"
+
+    def __str__(self) -> str:
+        return f"Consented Purposes for {self.column}: {self.consented_purposes})"
 
 
 @dataclass
