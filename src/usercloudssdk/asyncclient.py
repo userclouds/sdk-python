@@ -957,8 +957,10 @@ class AsyncClient:
             f"/userstore/download/codegensdk.py?include_example={include_example and 'true' or 'false'}"
         )
 
-    async def SaveUserstoreSDKAsync(self, path: Path) -> None:
-        sdk = self.DownloadUserstoreSDK()
+    async def SaveUserstoreSDKAsync(
+        self, path: Path, include_example: bool = False
+    ) -> None:
+        sdk = await self.DownloadUserstoreSDKAsync(include_example=include_example)
         path.write_text(sdk)
 
     # Access Token Helpers

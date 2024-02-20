@@ -919,8 +919,8 @@ class Client:
             f"/userstore/download/codegensdk.py?include_example={include_example and 'true' or 'false'}"
         )
 
-    def SaveUserstoreSDK(self, path: Path) -> None:
-        sdk = self.DownloadUserstoreSDK()
+    def SaveUserstoreSDK(self, path: Path, include_example: bool = False) -> None:
+        sdk = self.DownloadUserstoreSDK(include_example=include_example)
         path.write_text(sdk)
 
     # Access Token Helpers

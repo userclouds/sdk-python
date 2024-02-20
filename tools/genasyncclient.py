@@ -221,6 +221,12 @@ with open(outfile, "w") as out, open(infile) as f:
         line = re.sub(r"\sself\._delete\(", r" await self._delete_async(", line)
         # replace self._download with await self._download_async
         line = re.sub(r"\sself\._download\(", r" await self._download_async(", line)
+        # replace self._download with await self._download_async
+        line = re.sub(
+            r"\sself\.DownloadUserstoreSDK\(",
+            r" await self.DownloadUserstoreSDKAsync(",
+            line,
+        )
 
         out.write(line)
 

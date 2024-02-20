@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 - UNRELEASED
+
+- Update SaveUserstoreSDKAsync to use DownloadUserstoreSDKAsync, and allow passing include_example argument to those APIs.
+
 ## 1.5.1 - 15-02-2024
 
 - Fix minor issue with userstore_sample.py
