@@ -568,8 +568,12 @@ function id(len) {
     )
 
 
-def example(
-    client: Client, accessors: tuple[Accessor, ...], mutators: tuple[Mutator, ...]
+def userstore_example(
+    *,
+    client: Client,
+    user_region: Region | str,
+    accessors: tuple[Accessor, ...],
+    mutators: tuple[Mutator, ...],
 ) -> None:
     email = "me@example.org"
     assert len(accessors) == 4
@@ -619,7 +623,7 @@ def example(
                 ],
             },
         },
-        region=Region.AWS_US_WEST_2,
+        region=user_region,
     )
 
     # set the user's info using the mutator
@@ -789,12 +793,14 @@ def clean_retention_durations(client: Client) -> None:
                 )
 
 
-def run_userstore_sample(client: Client) -> None:
+def run_userstore_sample(*, client: Client, user_region: Region | str) -> None:
     # set up the userstore with the right columns, policies, accessors, mutators,
     # and retention durations
     accessors, mutators = setup(client)
     # run the example
-    example(client, accessors, mutators)
+    userstore_example(
+        client=client, user_region=user_region, accessors=accessors, mutators=mutators
+    )
     cleanup(client, accessors, mutators)
 
 
@@ -823,6 +829,7 @@ if __name__ == "__main__":
     disable_ssl_verify = (
         os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
     )
+    user_region = os.environ.get("UC_REGION", Region.AWS_US_WEST_2)
     client = Client(
         url=url,
         client_id=client_id,
@@ -834,7 +841,7 @@ if __name__ == "__main__":
         ),
         session_name=os.environ.get("UC_SESSION_NAME"),
     )
-    run_userstore_sample(client)
+    run_userstore_sample(client=client, user_region=user_region)
 
     client_async = AsyncClient(
         url=url,

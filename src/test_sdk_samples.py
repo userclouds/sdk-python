@@ -7,6 +7,7 @@ import pytest
 from authz_sample import run_authz_sample
 from tokenizer_sample import run_tokenizer_sample
 from usercloudssdk.client import Client
+from usercloudssdk.constants import Region
 from usercloudssdk.uchttpclient import create_uc_http_client_with_timeout
 from userstore_sample import run_userstore_sample
 
@@ -30,4 +31,5 @@ class TestSDKSamples:
         run_tokenizer_sample(ucclient)
 
     def test_userstore(self, ucclient: Client) -> None:
-        run_userstore_sample(ucclient)
+        user_region = os.environ.get("UC_REGION", Region.AWS_US_WEST_2)
+        run_userstore_sample(client=ucclient, user_region=user_region)
