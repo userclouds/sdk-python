@@ -923,6 +923,12 @@ class Client:
         sdk = self.DownloadUserstoreSDK(include_example=include_example)
         path.write_text(sdk)
 
+    def GetExternalOIDCIssuers(self) -> list[str]:
+        return self._get("/userstore/oidcissuers")
+
+    def UpdateExternalOIDCIssuers(self, issuers: list[str]) -> list[str]:
+        return self._put("/userstore/oidcissuers", json_data=issuers)
+
     # Access Token Helpers
 
     def _get_access_token(self) -> str:
