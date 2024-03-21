@@ -963,6 +963,12 @@ class AsyncClient:
         sdk = await self.DownloadUserstoreSDKAsync(include_example=include_example)
         path.write_text(sdk)
 
+    async def GetExternalOIDCIssuersAsync(self) -> list[str]:
+        return await self._get_async("/userstore/oidcissuers")
+
+    async def UpdateExternalOIDCIssuersAsync(self, issuers: list[str]) -> list[str]:
+        return await self._put_async("/userstore/oidcissuers", json_data=issuers)
+
     # Access Token Helpers
 
     async def _get_access_token_async(self) -> str:
