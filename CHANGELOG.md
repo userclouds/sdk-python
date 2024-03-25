@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 - 25-03-2025
+
+- Add methods to retrieve and set external OIDC issuers for a tenant
+
 ## 1.5.2 - 20-02-2024
 
 - Update SaveUserstoreSDKAsync to use DownloadUserstoreSDKAsync, and allow passing include_example argument to those APIs.
