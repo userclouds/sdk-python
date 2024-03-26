@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1
+
+- Add SDK method for data import via ExecuteMutator
+
 ## 1.6.0 - 25-03-2025
 
 - Add methods to retrieve and set external OIDC issuers for a tenant
