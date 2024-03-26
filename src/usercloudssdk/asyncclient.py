@@ -969,6 +969,23 @@ class AsyncClient:
     async def UpdateExternalOIDCIssuersAsync(self, issuers: list[str]) -> list[str]:
         return await self._put_async("/userstore/oidcissuers", json_data=issuers)
 
+    async def UploadDataImportFileAsync(
+        self, file_path: Path, import_type: str = "executemutator"
+    ) -> uuid.UUID:
+        json_data = await self._get_async(
+            f"/userstore/upload/dataimport?import_type={import_type}"
+        )
+        import_id = uuid.UUID(json_data["import_id"])
+        with open(file_path, "rb") as f:
+            resp = await self._client.put_async(json_data["presigned_url"], content=f)
+            if resp.status_code >= 400:
+                raise UserCloudsSDKError.from_response(resp)
+        return import_id
+
+    async def CheckDataImportStatusAsync(self, import_id: uuid.UUID) -> dict:
+        json_data = await self._get_async(f"/userstore/upload/dataimport/{import_id}")
+        return json_data
+
     # Access Token Helpers
 
     async def _get_access_token_async(self) -> str:

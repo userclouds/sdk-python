@@ -17,7 +17,7 @@ def serializer(obj):
 
 
 def loads(data: str) -> dict:
-    return json.loads(data)
+    return json.loads(data) if data else {}
 
 
 def dumps(data: dict) -> str:

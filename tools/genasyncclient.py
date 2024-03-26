@@ -213,12 +213,24 @@ with open(outfile, "w") as out, open(infile) as f:
         )
         # replace self._get with await self._get_async
         line = re.sub(r"\sself\._get\(", r" await self._get_async(", line)
+        # replace self._client.get with await self._client.get_async
+        line = re.sub(r"\sself\._client.get\(", r" await self._client.get_async(", line)
         # replace self._post with await self._post_async
         line = re.sub(r"\sself\._post\(", r" await self._post_async(", line)
+        # replace self._client.post with await self._client.post_async
+        line = re.sub(
+            r"\sself\._client.post\(", r" await self._client.post_async(", line
+        )
         # replace self._put with await self._put_async
         line = re.sub(r"\sself\._put\(", r" await self._put_async(", line)
+        # replace self._client.put with await self._client.put_async
+        line = re.sub(r"\sself\._client.put\(", r" await self._client.put_async(", line)
         # replace self._delete with await self._delete_async
         line = re.sub(r"\sself\._delete\(", r" await self._delete_async(", line)
+        # replace self._client.delete with await self._client.delete_async
+        line = re.sub(
+            r"\sself\._client.delete\(", r" await self._client.delete_async(", line
+        )
         # replace self._download with await self._download_async
         line = re.sub(r"\sself\._download\(", r" await self._download_async(", line)
         # replace self._download with await self._download_async

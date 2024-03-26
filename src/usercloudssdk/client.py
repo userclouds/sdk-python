@@ -929,6 +929,21 @@ class Client:
     def UpdateExternalOIDCIssuers(self, issuers: list[str]) -> list[str]:
         return self._put("/userstore/oidcissuers", json_data=issuers)
 
+    def UploadDataImportFile(
+        self, file_path: Path, import_type: str = "executemutator"
+    ) -> uuid.UUID:
+        json_data = self._get(f"/userstore/upload/dataimport?import_type={import_type}")
+        import_id = uuid.UUID(json_data["import_id"])
+        with open(file_path, "rb") as f:
+            resp = self._client.put(json_data["presigned_url"], content=f)
+            if resp.status_code >= 400:
+                raise UserCloudsSDKError.from_response(resp)
+        return import_id
+
+    def CheckDataImportStatus(self, import_id: uuid.UUID) -> dict:
+        json_data = self._get(f"/userstore/upload/dataimport/{import_id}")
+        return json_data
+
     # Access Token Helpers
 
     def _get_access_token(self) -> str:
