@@ -139,6 +139,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
             index_type=ColumnIndexType.NONE,
             constraints=ColumnConstraints(
                 immutable_required=False,
+                partial_updates=False,
                 unique_id_required=False,
                 unique_required=False,
                 fields=[
@@ -176,6 +177,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
             index_type=ColumnIndexType.NONE,
             constraints=ColumnConstraints(
                 immutable_required=False,
+                partial_updates=False,
                 unique_id_required=False,
                 unique_required=False,
                 fields=[
