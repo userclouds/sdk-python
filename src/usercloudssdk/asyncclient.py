@@ -20,6 +20,7 @@ from .models import (
     AccessPolicyTemplate,
     Column,
     ColumnConsentedPurposes,
+    ColumnDataType,
     ColumnRetentionDurationResponse,
     ColumnRetentionDurationsResponse,
     Edge,
@@ -185,9 +186,59 @@ class AsyncClient:
         }
         return await self._post_async("/userstore/api/users", json_data=body)
 
+    # ColumnDataType Operations
+
+    async def CreateColumnDataTypeAsync(
+        self, dataType: ColumnDataType, if_not_exists: bool = False
+    ) -> ColumnDataType:
+        try:
+            resp_json = await self._post_async(
+                "/userstore/config/datatypes",
+                json_data={"data_type": dataType.__dict__},
+            )
+            return ColumnDataType.from_json(resp_json)
+        except UserCloudsSDKError as err:
+            if if_not_exists:
+                dataType.id = _id_from_identical_conflict(err)
+                return dataType
+            raise err
+
+    async def DeleteColumnDataTypeAsync(self, id: uuid.UUID) -> bool:
+        return await self._delete_async(f"/userstore/config/datatypes/{id}")
+
+    async def GetColumnDataTypeAsync(self, id: uuid.UUID) -> ColumnDataType:
+        resp_json = await self._get_async(f"/userstore/config/datatypes/{id}")
+        return ColumnDataType.from_json(resp_json)
+
+    async def ListColumnDataTypesAsync(
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
+    ) -> list[ColumnDataType]:
+        params: dict[str, int | str] = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        resp_json = await self._get_async("/userstore/config/datatypes", params=params)
+        dataTypes = [
+            ColumnDataType.from_json(dataType) for dataType in resp_json["data"]
+        ]
+        return dataTypes
+
+    async def UpdateColumnDataTypeAsync(
+        self, dataType: ColumnDataType
+    ) -> ColumnDataType:
+        resp_json = await self._put_async(
+            f"/userstore/config/datatypes/{dataType.id}",
+            json_data={"data_type": dataType.__dict__},
+        )
+        return ColumnDataType.from_json(resp_json)
+
     # Column Operations
 
-    async def CreateColumnAsync(self, column: Column, if_not_exists=False) -> Column:
+    async def CreateColumnAsync(
+        self, column: Column, if_not_exists: bool = False
+    ) -> Column:
         try:
             resp_json = await self._post_async(
                 "/userstore/config/columns", json_data={"column": column.__dict__}
@@ -229,7 +280,7 @@ class AsyncClient:
     # Purpose Operations
 
     async def CreatePurposeAsync(
-        self, purpose: Purpose, if_not_exists=False
+        self, purpose: Purpose, if_not_exists: bool = False
     ) -> Purpose:
         try:
             resp_json = await self._post_async(
@@ -438,7 +489,7 @@ class AsyncClient:
     # Access Policy Templates
 
     async def CreateAccessPolicyTemplateAsync(
-        self, access_policy_template: AccessPolicyTemplate, if_not_exists=False
+        self, access_policy_template: AccessPolicyTemplate, if_not_exists: bool = False
     ) -> AccessPolicyTemplate | UserCloudsSDKError:
         try:
             resp_json = await self._post_async(
@@ -498,7 +549,7 @@ class AsyncClient:
     # Access Policies
 
     async def CreateAccessPolicyAsync(
-        self, access_policy: AccessPolicy, if_not_exists=False
+        self, access_policy: AccessPolicy, if_not_exists: bool = False
     ) -> AccessPolicy | UserCloudsSDKError:
         try:
             resp_json = await self._post_async(
@@ -552,7 +603,7 @@ class AsyncClient:
     # Transformers
 
     async def CreateTransformerAsync(
-        self, transformer: Transformer, if_not_exists=False
+        self, transformer: Transformer, if_not_exists: bool = False
     ):
         try:
             resp_json = await self._post_async(
@@ -589,7 +640,7 @@ class AsyncClient:
     # Accessor Operations
 
     async def CreateAccessorAsync(
-        self, accessor: Accessor, if_not_exists=False
+        self, accessor: Accessor, if_not_exists: bool = False
     ) -> Accessor:
         try:
             resp_json = await self._post_async(
@@ -643,7 +694,7 @@ class AsyncClient:
     # Mutator Operations
 
     async def CreateMutatorAsync(
-        self, mutator: Mutator, if_not_exists=False
+        self, mutator: Mutator, if_not_exists: bool = False
     ) -> Mutator:
         try:
             resp_json = await self._post_async(
@@ -783,7 +834,9 @@ class AsyncClient:
         objects = [Object.from_json(o) for o in j["data"]]
         return objects
 
-    async def CreateObjectAsync(self, object: Object, if_not_exists=False) -> Object:
+    async def CreateObjectAsync(
+        self, object: Object, if_not_exists: bool = False
+    ) -> Object:
         try:
             j = await self._post_async(
                 "/authz/objects", json_data={"object": object.__dict__}
@@ -816,7 +869,7 @@ class AsyncClient:
         edges = [Edge.from_json(e) for e in j["data"]]
         return edges
 
-    async def CreateEdgeAsync(self, edge: Edge, if_not_exists=False) -> Edge:
+    async def CreateEdgeAsync(self, edge: Edge, if_not_exists: bool = False) -> Edge:
         try:
             j = await self._post_async(
                 "/authz/edges", json_data={"edge": edge.__dict__}
@@ -850,7 +903,7 @@ class AsyncClient:
         return object_types
 
     async def CreateObjectTypeAsync(
-        self, object_type: ObjectType, if_not_exists=False
+        self, object_type: ObjectType, if_not_exists: bool = False
     ) -> ObjectType:
         try:
             j = await self._post_async(
@@ -885,7 +938,7 @@ class AsyncClient:
         return edge_types
 
     async def CreateEdgeTypeAsync(
-        self, edge_type: EdgeType, if_not_exists=False
+        self, edge_type: EdgeType, if_not_exists: bool = False
     ) -> EdgeType:
         try:
             j = await self._post_async(
@@ -920,7 +973,7 @@ class AsyncClient:
         return organizations
 
     async def CreateOrganizationAsync(
-        self, organization: Organization, if_not_exists=False
+        self, organization: Organization, if_not_exists: bool = False
     ) -> Organization:
         try:
             json_data = await self._post_async(

@@ -138,6 +138,156 @@ class ResourceID:
         return rsc_id
 
 
+class CompositeField:
+    data_type: ResourceID
+    name: str
+    camel_case_name: str
+    struct_name: str
+    required: bool
+    ignore_for_uniqueness: bool
+
+    def __init__(
+        self,
+        data_type: ResourceID,
+        name: str,
+        camel_case_name: str = "",
+        struct_name: str = "",
+        required: bool = False,
+        ignore_for_uniqueness: bool = False,
+    ) -> None:
+        self.data_type = data_type
+        self.name = name
+        self.camel_case_name = camel_case_name
+        self.struct_name = struct_name
+        self.required = required
+        self.ignore_for_uniqueness = ignore_for_uniqueness
+
+    def __str__(self) -> str:
+        return f"CompositeField: {self.name} [{self.data_type}]"
+
+    def __repr__(self) -> str:
+        return f"CompositeField(data_type={self.data_type}, name={self.name}, camel_case_name={self.camel_case_name}, struct_name={self.struct_name}, required={self.required}, ignore_for_uniqueness={self.ignore_for_uniqueness})"
+
+    def to_json(self) -> str:
+        return ucjson.dumps(
+            {
+                "data_type": self.data_type,
+                "name": self.name,
+                "camel_case_name": self.camel_case_name,
+                "struct_name": self.struct_name,
+                "required": self.required,
+                "ignore_for_uniqueness": self.ignore_for_uniqueness,
+            }
+        )
+
+    @classmethod
+    def from_json(cls, json_data: dict) -> ColumnField:
+        return cls(
+            data_type=ResourceID.from_json(json_data["data_type"]),
+            name=json_data["name"],
+            camel_case_name=json_data["camel_case_name"],
+            struct_name=json_data["struct_name"],
+            required=json_data["required"],
+            ignore_for_uniqueness=json_data["ignore_for_uniqueness"],
+        )
+
+
+class CompositeAttributes:
+    include_id: bool
+    fields: list[CompositeField]
+
+    def __init__(
+        self,
+        include_id: bool,
+        fields: list[CompositeField],
+    ) -> None:
+        self.include_id = include_id
+        self.fields = fields
+
+    def __str__(self) -> str:
+        return (
+            f"CompositeAttributes: include_id={self.include_id}, fields={self.fields}"
+        )
+
+    def __repr__(self) -> str:
+        return f"CompsositeAttributes(include_id={self.include_id}, fields={self.fields!r})"
+
+    def to_json(self) -> str:
+        return ucjson.dumps(
+            {
+                "include_id": self.include_id,
+                "fields": [field.to_json() for field in self.fields],
+            }
+        )
+
+    @classmethod
+    def from_json(cls, json_data: dict) -> CompositeAttributes:
+        return cls(
+            include_id=json_data["include_id"],
+            fields=json_data["fields"],
+        )
+
+
+class ColumnDataType:
+    id: uuid.UUID
+    name: str
+    description: str
+    is_composite_field_type: bool
+    is_native: bool
+    composite_attributes: CompositeAttributes
+
+    def __init__(
+        self,
+        id: uuid.UUID,
+        name: str,
+        description: str,
+        is_composite_field_type: bool = False,
+        is_native: bool = False,
+        composite_attributes: CompositeAttributes | None = None,
+    ) -> None:
+        self.id = id
+        self.name = name
+        self.description = description
+        self.is_composite_field_type = is_composite_field_type
+        self.is_native = is_native
+        if composite_attributes is None:
+            self.composite_attributes = CompositeAttributes(
+                include_id=False,
+                fields=[],
+            )
+        else:
+            self.composite_attributes = composite_attributes
+
+    def to_json(self) -> str:
+        return ucjson.dumps(
+            {
+                "id": str(self.id),
+                "name": self.name,
+                "description": self.description,
+                "is_composite_field_type": self.is_composite_field_type,
+                "is_native": self.is_native,
+                "composite_attributes": self.composite_attributes,
+            }
+        )
+
+    @classmethod
+    def from_json(cls, json_data: dict) -> ColumnDataType:
+        return cls(
+            id=uuid.UUID(json_data["id"]),
+            name=json_data["name"],
+            description=json_data["description"],
+            is_composite_field_type=json_data["is_composite_field_type"],
+            is_native=json_data["is_native"],
+            composite_attributes=json_data["composite_attributes"],
+        )
+
+    def __str__(self) -> str:
+        return f"ColumnDataType {self.name} [{self.description}] - {self.id}"
+
+    def __repr__(self) -> str:
+        return f"ColumnDataType(id={self.id}, name={self.name}, description={self.description})"
+
+
 class ColumnField:
     type: DataType
     name: str
@@ -222,7 +372,7 @@ class ColumnConstraints:
                 "immutable_required": self.immutable_required,
                 "unique_id_required": self.unique_id_required,
                 "unique_required": self.unique_required,
-                "fields": self.fields,
+                "fields": [field.to_json() for field in self.fields],
             }
         )
 
@@ -239,6 +389,7 @@ class ColumnConstraints:
 class Column:
     id: uuid.UUID
     name: str
+    data_type: ResourceID | None
     type: DataType
     is_array: bool
     default_value: str
@@ -253,10 +404,12 @@ class Column:
         is_array: bool,
         default_value: str,
         index_type: str | ColumnIndexType,
+        data_type: ResourceID | None = None,
         constraints: ColumnConstraints | None = None,
     ) -> None:
         self.id = id
         self.name = name
+        self.data_type = data_type
         self.type = DataType(type)
         self.is_array = is_array
         self.default_value = default_value
@@ -276,6 +429,7 @@ class Column:
             {
                 "id": str(self.id),
                 "name": self.name,
+                "data_type": self.data_type,
                 "type": self.type.value,
                 "is_array": self.is_array,
                 "default_value": self.default_value,
@@ -289,6 +443,7 @@ class Column:
         return cls(
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
+            data_type=ResourceID.from_json(json_data["data_type"]),
             type=DataType(json_data["type"]),
             is_array=json_data["is_array"],
             default_value=json_data["default_value"],
@@ -297,10 +452,10 @@ class Column:
         )
 
     def __str__(self) -> str:
-        return f"Column {self.name} [{self.type}] - {self.id}"
+        return f"Column {self.name} [{self.type}] [{self.data_type}] - {self.id}"
 
     def __repr__(self) -> str:
-        return f"Column(id={self.id}, name={self.name}, type={self.type})"
+        return f"Column(id={self.id}, name={self.name}, data_type={self.data_type}, type={self.type})"
 
 
 class Purpose:
@@ -666,8 +821,10 @@ class AccessPolicy:
 class Transformer:
     id: uuid.UUID
     name: str
+    input_data_type: ResourceID | None
     input_type: DataType
     input_type_constraints: ColumnConstraints
+    output_data_type: ResourceID | None
     output_type: DataType
     output_type_constraints: ColumnConstraints
     reuse_existing_token: bool
@@ -679,7 +836,9 @@ class Transformer:
         self,
         id: uuid.UUID = uuid.UUID(int=0),
         name: str = "",
+        input_data_type: ResourceID | None = None,
         input_type: str | DataType = DataType.STRING,
+        output_data_type: ResourceID | None = None,
         output_type: str | DataType = DataType.STRING,
         reuse_existing_token: bool = False,
         transform_type: str | TransformType = TransformType.PASSTHROUGH,
@@ -690,7 +849,9 @@ class Transformer:
     ) -> None:
         self.id = id
         self.name = name
+        self.input_data_type = input_data_type
         self.input_type = DataType(input_type)
+        self.output_data_type = output_data_type
         self.output_type = DataType(output_type)
         self.reuse_existing_token = reuse_existing_token
         self.transform_type = TransformType(transform_type)
@@ -726,8 +887,10 @@ class Transformer:
             {
                 "id": str(self.id),
                 "name": self.name,
+                "input_data_type": self.input_data_type,
                 "input_type": self.input_type.value,
                 "input_type_constraints": self.input_type_constraints,
+                "output_data_type": self.output_data_type,
                 "output_type": self.output_type.value,
                 "output_type_constraints": self.output_type_constraints,
                 "reuse_existing_token": self.reuse_existing_token,
@@ -742,12 +905,14 @@ class Transformer:
         return cls(
             id=uuid.UUID(json_data["id"]),
             name=json_data["name"],
+            input_data_type=ResourceID.from_json(json_data["input_data_type"]),
             input_type=DataType(json_data["input_type"]),
             input_type_constraints=(
                 json_data["input_type_constraints"]
                 if "input_type_constraints" in json_data
                 else None
             ),
+            output_data_type=ResourceID.from_json(json_data["output_data_type"]),
             output_type=DataType(json_data["output_type"]),
             output_type_constraints=(
                 json_data["output_type_constraints"]
