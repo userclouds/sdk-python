@@ -19,6 +19,7 @@ from .models import (
     AccessPolicyTemplate,
     Column,
     ColumnConsentedPurposes,
+    ColumnDataType,
     ColumnRetentionDurationResponse,
     ColumnRetentionDurationsResponse,
     Edge,
@@ -179,9 +180,55 @@ class Client:
         }
         return self._post("/userstore/api/users", json_data=body)
 
+    # ColumnDataType Operations
+
+    def CreateColumnDataType(
+        self, dataType: ColumnDataType, if_not_exists: bool = False
+    ) -> ColumnDataType:
+        try:
+            resp_json = self._post(
+                "/userstore/config/datatypes",
+                json_data={"data_type": dataType.__dict__},
+            )
+            return ColumnDataType.from_json(resp_json)
+        except UserCloudsSDKError as err:
+            if if_not_exists:
+                dataType.id = _id_from_identical_conflict(err)
+                return dataType
+            raise err
+
+    def DeleteColumnDataType(self, id: uuid.UUID) -> bool:
+        return self._delete(f"/userstore/config/datatypes/{id}")
+
+    def GetColumnDataType(self, id: uuid.UUID) -> ColumnDataType:
+        resp_json = self._get(f"/userstore/config/datatypes/{id}")
+        return ColumnDataType.from_json(resp_json)
+
+    def ListColumnDataTypes(
+        self, limit: int = 0, starting_after: uuid.UUID | None = None
+    ) -> list[ColumnDataType]:
+        params: dict[str, int | str] = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = f"id:{starting_after}"
+        params["version"] = "3"
+        resp_json = self._get("/userstore/config/datatypes", params=params)
+        dataTypes = [
+            ColumnDataType.from_json(dataType) for dataType in resp_json["data"]
+        ]
+        return dataTypes
+
+    def UpdateColumnDataType(self, dataType: ColumnDataType) -> ColumnDataType:
+        resp_json = self._put(
+            f"/userstore/config/datatypes/{dataType.id}",
+            json_data={"data_type": dataType.__dict__},
+        )
+        return ColumnDataType.from_json(resp_json)
+
     # Column Operations
 
-    def CreateColumn(self, column: Column, if_not_exists=False) -> Column:
+    def CreateColumn(self, column: Column, if_not_exists: bool = False) -> Column:
         try:
             resp_json = self._post(
                 "/userstore/config/columns", json_data={"column": column.__dict__}
@@ -222,7 +269,7 @@ class Client:
 
     # Purpose Operations
 
-    def CreatePurpose(self, purpose: Purpose, if_not_exists=False) -> Purpose:
+    def CreatePurpose(self, purpose: Purpose, if_not_exists: bool = False) -> Purpose:
         try:
             resp_json = self._post(
                 "/userstore/config/purposes", json_data={"purpose": purpose.__dict__}
@@ -428,7 +475,7 @@ class Client:
     # Access Policy Templates
 
     def CreateAccessPolicyTemplate(
-        self, access_policy_template: AccessPolicyTemplate, if_not_exists=False
+        self, access_policy_template: AccessPolicyTemplate, if_not_exists: bool = False
     ) -> AccessPolicyTemplate | UserCloudsSDKError:
         try:
             resp_json = self._post(
@@ -480,7 +527,7 @@ class Client:
     # Access Policies
 
     def CreateAccessPolicy(
-        self, access_policy: AccessPolicy, if_not_exists=False
+        self, access_policy: AccessPolicy, if_not_exists: bool = False
     ) -> AccessPolicy | UserCloudsSDKError:
         try:
             resp_json = self._post(
@@ -531,7 +578,7 @@ class Client:
 
     # Transformers
 
-    def CreateTransformer(self, transformer: Transformer, if_not_exists=False):
+    def CreateTransformer(self, transformer: Transformer, if_not_exists: bool = False):
         try:
             resp_json = self._post(
                 "/tokenizer/policies/transformation",
@@ -562,7 +609,9 @@ class Client:
 
     # Accessor Operations
 
-    def CreateAccessor(self, accessor: Accessor, if_not_exists=False) -> Accessor:
+    def CreateAccessor(
+        self, accessor: Accessor, if_not_exists: bool = False
+    ) -> Accessor:
         try:
             resp_json = self._post(
                 "/userstore/config/accessors", json_data={"accessor": accessor.__dict__}
@@ -614,7 +663,7 @@ class Client:
 
     # Mutator Operations
 
-    def CreateMutator(self, mutator: Mutator, if_not_exists=False) -> Mutator:
+    def CreateMutator(self, mutator: Mutator, if_not_exists: bool = False) -> Mutator:
         try:
             resp_json = self._post(
                 "/userstore/config/mutators", json_data={"mutator": mutator.__dict__}
@@ -751,7 +800,7 @@ class Client:
         objects = [Object.from_json(o) for o in j["data"]]
         return objects
 
-    def CreateObject(self, object: Object, if_not_exists=False) -> Object:
+    def CreateObject(self, object: Object, if_not_exists: bool = False) -> Object:
         try:
             j = self._post("/authz/objects", json_data={"object": object.__dict__})
             return Object.from_json(j)
@@ -782,7 +831,7 @@ class Client:
         edges = [Edge.from_json(e) for e in j["data"]]
         return edges
 
-    def CreateEdge(self, edge: Edge, if_not_exists=False) -> Edge:
+    def CreateEdge(self, edge: Edge, if_not_exists: bool = False) -> Edge:
         try:
             j = self._post("/authz/edges", json_data={"edge": edge.__dict__})
             return Edge.from_json(j)
@@ -814,7 +863,7 @@ class Client:
         return object_types
 
     def CreateObjectType(
-        self, object_type: ObjectType, if_not_exists=False
+        self, object_type: ObjectType, if_not_exists: bool = False
     ) -> ObjectType:
         try:
             j = self._post(
@@ -848,7 +897,9 @@ class Client:
         edge_types = [EdgeType.from_json(et) for et in j["data"]]
         return edge_types
 
-    def CreateEdgeType(self, edge_type: EdgeType, if_not_exists=False) -> EdgeType:
+    def CreateEdgeType(
+        self, edge_type: EdgeType, if_not_exists: bool = False
+    ) -> EdgeType:
         try:
             j = self._post(
                 "/authz/edgetypes", json_data={"edge_type": edge_type.__dict__}
@@ -882,7 +933,7 @@ class Client:
         return organizations
 
     def CreateOrganization(
-        self, organization: Organization, if_not_exists=False
+        self, organization: Organization, if_not_exists: bool = False
     ) -> Organization:
         try:
             json_data = self._post(

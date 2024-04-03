@@ -26,6 +26,7 @@ from .models import (
     AccessPolicyTemplate,
     Column,
     ColumnConsentedPurposes,
+    ColumnDataType,
     ColumnRetentionDurationResponse,
     ColumnRetentionDurationsResponse,
     Edge,

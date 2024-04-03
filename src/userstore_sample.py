@@ -16,6 +16,7 @@ from usercloudssdk.constants import (
     Region,
     TransformType,
 )
+from usercloudssdk.data_types import ColumnDataTypeBoolean, ColumnDataTypeString
 from usercloudssdk.models import (
     Accessor,
     AccessPolicy,
@@ -23,10 +24,13 @@ from usercloudssdk.models import (
     AccessPolicyTemplate,
     Column,
     ColumnConstraints,
+    ColumnDataType,
     ColumnField,
     ColumnInputConfig,
     ColumnOutputConfig,
     ColumnRetentionDuration,
+    CompositeAttributes,
+    CompositeField,
     Mutator,
     Purpose,
     ResourceID,
@@ -75,6 +79,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
         Column(
             id=None,
             name="temp_column",
+            data_type=ColumnDataTypeBoolean,
             type=DataType.BOOLEAN,
             is_array=False,
             default_value="",
@@ -88,11 +93,33 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
     client.UpdateColumn(col)
     client.DeleteColumn(col.id)
 
-    # create phone number, home address, and email columns
+    # create a custom us address data type
+    client.CreateColumnDataType(
+        ColumnDataType(
+            id=None,
+            name="us_address",
+            description="a US style address",
+            composite_attributes=CompositeAttributes(
+                include_id=False,
+                fields=[
+                    CompositeField(
+                        data_type=ColumnDataTypeString, name="Street_Address"
+                    ),
+                    CompositeField(data_type=ColumnDataTypeString, name="City"),
+                    CompositeField(data_type=ColumnDataTypeString, name="State"),
+                    CompositeField(data_type=ColumnDataTypeString, name="Zip"),
+                ],
+            ),
+        ),
+        if_not_exists=True,
+    )
+
+    # create phone number, shipping addresses, billing address, and email columns
     phone_number = client.CreateColumn(
         Column(
             id=None,
             name=_PHONE_NUMBER_COLUMN_NAME,
+            data_type=ColumnDataTypeString,
             type=DataType.STRING,
             is_array=False,
             default_value="",
@@ -104,11 +131,23 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
     client.CreateColumn(
         Column(
             id=None,
-            name="home_addresses",
-            type=DataType.ADDRESS,
+            name="shipping_addresses",
+            data_type=ResourceID(name="us_address"),
+            type=DataType.COMPOSITE,
             is_array=True,
             default_value="",
             index_type=ColumnIndexType.NONE,
+            constraints=ColumnConstraints(
+                immutable_required=False,
+                unique_id_required=False,
+                unique_required=False,
+                fields=[
+                    ColumnField(type=DataType.STRING, name="Street_Address"),
+                    ColumnField(type=DataType.STRING, name="City"),
+                    ColumnField(type=DataType.STRING, name="State"),
+                    ColumnField(type=DataType.STRING, name="Zip"),
+                ],
+            ),
         ),
         if_not_exists=True,
     )
@@ -117,6 +156,7 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
         Column(
             id=None,
             name=_EMAIL_COLUMN_NAME,
+            data_type=ColumnDataTypeString,
             type=DataType.STRING,
             is_array=False,
             default_value="",
@@ -128,7 +168,8 @@ def setup(client: Client) -> tuple[tuple[Accessor, ...], tuple[Mutator, ...]]:
     client.CreateColumn(
         Column(
             id=None,
-            name="usa_address",
+            name="billing_address",
+            data_type=ResourceID(name="us_address"),
             type=DataType.COMPOSITE,
             is_array=False,
             default_value="",
@@ -309,7 +350,9 @@ function transform(data, params) {
     support_phone_transformer = Transformer(
         id=None,
         name="PIITransformerForSupport",
+        input_data_type=ColumnDataTypeString,
         input_type=DataType.STRING,
+        output_data_type=ColumnDataTypeString,
         output_type=DataType.STRING,
         reuse_existing_token=False,
         transform_type=TransformType.TRANSFORM,
@@ -323,7 +366,9 @@ function transform(data, params) {
     security_phone_transformer = Transformer(
         id=None,
         name="PIITransformerForSecurity",
+        input_data_type=ColumnDataTypeString,
         input_type=DataType.STRING,
+        output_data_type=ColumnDataTypeString,
         output_type=DataType.STRING,
         reuse_existing_token=False,
         transform_type=TransformType.TRANSFORM,
@@ -360,7 +405,9 @@ function id(len) {
     logging_phone_transformer = Transformer(
         id=None,
         name="PIITransformerForLogging",
+        input_data_type=ColumnDataTypeString,
         input_type=DataType.STRING,
+        output_data_type=ColumnDataTypeString,
         output_type=DataType.STRING,
         reuse_existing_token=True,  # Set this is to false to get a unique token every time this transformer is called vs getting same token on every call
         transform_type=TransformType.TOKENIZE_BY_VALUE,
@@ -392,7 +439,7 @@ function id(len) {
                 transformer=ResourceID(id=support_phone_transformer.id),
             ),
             ColumnOutputConfig(
-                column=ResourceID(name="home_addresses"),
+                column=ResourceID(name="shipping_addresses"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
             ColumnOutputConfig(
@@ -404,7 +451,7 @@ function id(len) {
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
             ColumnOutputConfig(
-                column=ResourceID(name="usa_address"),
+                column=ResourceID(name="billing_address"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
         ],
@@ -433,7 +480,7 @@ function id(len) {
                 transformer=ResourceID(id=security_phone_transformer.id),
             ),
             ColumnOutputConfig(
-                column=ResourceID(name="home_addresses"),
+                column=ResourceID(name="shipping_addresses"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
             ColumnOutputConfig(
@@ -445,13 +492,13 @@ function id(len) {
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
             ColumnOutputConfig(
-                column=ResourceID(name="usa_address"),
+                column=ResourceID(name="billing_address"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
         ],
         access_policy=ResourceID(id=ap.id),
         selector_config=UserSelectorConfig(
-            "{home_addresses}->>'street_address_line_1' LIKE (?) AND "
+            "{shipping_addresses}->>'street_address' LIKE (?) AND "
             + "{phone_number} = (?)"
         ),
         purposes=[_SECURITY_PURPOSE_RESOURCE_ID],
@@ -469,7 +516,7 @@ function id(len) {
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
             ColumnOutputConfig(
-                column=ResourceID(name="home_addresses"),
+                column=ResourceID(name="shipping_addresses"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
             ColumnOutputConfig(
@@ -481,7 +528,7 @@ function id(len) {
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
             ColumnOutputConfig(
-                column=ResourceID(name="usa_address"),
+                column=ResourceID(name="billing_address"),
                 transformer=ResourceID(id=TransformerPassThrough.id),
             ),
         ],
@@ -512,23 +559,23 @@ function id(len) {
 
     # Mutators are configurable APIs that allow a client to write data to the User
     # Store. Mutators (setters) can be thought of as the complement to accessors
-    # (getters). Here we create mutator to update the user's phone number and home
-    # address, and another mutator for updating email address.
+    # (getters). Here we create mutator to update the user's phone number, shipping
+    # addresses, and billing address, and another mutator for updating email address.
     phone_address_mutator = Mutator(
         id=None,
         name="PhoneAndAddressMutator",
-        description="Mutator for updating phone number and home address",
+        description="Mutator for updating phone number and addresses",
         columns=[
             ColumnInputConfig(
                 column=_PHONE_NUMBER_COLUMN_RESOURCE_ID,
                 normalizer=ResourceID(id=NormalizerOpen.id),
             ),
             ColumnInputConfig(
-                column=ResourceID(name="home_addresses"),
+                column=ResourceID(name="shipping_addresses"),
                 normalizer=ResourceID(id=NormalizerOpen.id),
             ),
             ColumnInputConfig(
-                column=ResourceID(name="usa_address"),
+                column=ResourceID(name="billing_address"),
                 normalizer=ResourceID(id=NormalizerOpen.id),
             ),
         ],
@@ -542,7 +589,7 @@ function id(len) {
     phone_address_mutator.description = "New description"
     phone_address_mutator = client.UpdateMutator(phone_address_mutator)
     phone_address_mutator.description = (
-        "Mutator for updating phone number and home address"
+        "Mutator for updating phone number and addresses"
     )
     phone_address_mutator = client.UpdateMutator(phone_address_mutator)
     phone_address_mutator = client.GetMutator(phone_address_mutator.id)
@@ -640,17 +687,17 @@ def userstore_example(
                     {"Name": "operational"},
                 ],
             },
-            "home_addresses": {
-                "value": '[{"country":"usa", "street_address_line_1":"742 Evergreen \
-Terrace", "locality":"Springfield"}, {"country":"usa", "street_address_line_1":"123 \
-Main St", "locality":"Pleasantville"}]',
+            "shipping_addresses": {
+                "value": '[{"state":"IL", "street_address":"742 Evergreen \
+                        Terrace", "city":"Springfield", "zip":"62704"}, {"state":"CA", "street_address":"123 \
+                        Main St", "city":"Pleasantville", "zip":"94566"}]',
                 "purpose_additions": [
                     {"Name": _SECURITY_PURPOSE_NAME},
                     {"Name": "support"},
                     {"Name": "operational"},
                 ],
             },
-            "usa_address": {
+            "billing_address": {
                 "value": '{"street_address":"742 Evergreen Terrace","city":"Springfield","state":"IL","zip":"62704"}',
                 "purpose_additions": [
                     {"Name": _SECURITY_PURPOSE_NAME},
