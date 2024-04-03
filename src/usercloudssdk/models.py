@@ -344,6 +344,7 @@ class ColumnField:
 
 class ColumnConstraints:
     immutable_required: bool
+    partial_updates: bool
     unique_id_required: bool
     unique_required: bool
     fields: list[ColumnField]
@@ -351,25 +352,28 @@ class ColumnConstraints:
     def __init__(
         self,
         immutable_required: bool,
+        partial_updates: bool,
         unique_id_required: bool,
         unique_required: bool,
         fields: list[ColumnField],
     ) -> None:
         self.immutable_required = immutable_required
+        self.partial_updates = partial_updates
         self.unique_id_required = unique_id_required
         self.unique_required = unique_required
         self.fields = fields
 
     def __str__(self) -> str:
-        return f"ColumnConstraints: immutable_required={self.immutable_required}, unique_id_required={self.unique_id_required}, unique_required={self.unique_required}, fields={self.fields}"
+        return f"ColumnConstraints: immutable_required={self.immutable_required}, partial_updates={self.partial_updates}, unique_id_required={self.unique_id_required}, unique_required={self.unique_required}, fields={self.fields}"
 
     def __repr__(self) -> str:
-        return f"ColumnConstraints(immutable_required={self.immutable_required}, unique_id_required={self.unique_id_required}, unique_required={self.unique_required}, fields={self.fields!r})"
+        return f"ColumnConstraints(immutable_required={self.immutable_required}, partial_updates={self.partial_updates}, unique_id_required={self.unique_id_required}, unique_required={self.unique_required}, fields={self.fields!r})"
 
     def to_json(self) -> str:
         return ucjson.dumps(
             {
                 "immutable_required": self.immutable_required,
+                "partial_updates": self.partial_updates,
                 "unique_id_required": self.unique_id_required,
                 "unique_required": self.unique_required,
                 "fields": [field.to_json() for field in self.fields],
@@ -380,6 +384,11 @@ class ColumnConstraints:
     def from_json(cls, json_data: dict) -> ColumnConstraints:
         return cls(
             immutable_required=json_data["immutable_required"],
+            partial_updates=(
+                json_data["partial_updates"]
+                if "partial_updates" in json_data
+                else False
+            ),
             unique_id_required=json_data["unique_id_required"],
             unique_required=json_data["unique_required"],
             fields=json_data["fields"],
@@ -417,6 +426,7 @@ class Column:
         if constraints is None:
             self.constraints = ColumnConstraints(
                 immutable_required=False,
+                partial_updates=False,
                 unique_id_required=False,
                 unique_required=False,
                 fields=[],
@@ -860,6 +870,7 @@ class Transformer:
         if input_type_constraints is None:
             self.input_type_constraints = ColumnConstraints(
                 immutable_required=False,
+                partial_updates=False,
                 unique_id_required=False,
                 unique_required=False,
                 fields=[],
@@ -869,6 +880,7 @@ class Transformer:
         if output_type_constraints is None:
             self.output_type_constraints = ColumnConstraints(
                 immutable_required=False,
+                partial_updates=False,
                 unique_id_required=False,
                 unique_required=False,
                 fields=[],
