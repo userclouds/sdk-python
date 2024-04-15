@@ -2,6 +2,7 @@
 
 ## UNPUBLISHED
 
+- Update userstore sample to exercise partial update columns
 - Add methods for creating, retrieving, updating, and deleting ColumnDataTypes
 - Add data_type field to Column that refers to a ColumnDataType
 - Add input_data_type and output_data_type fields to Transformer that refer to ColumnDataTypes
