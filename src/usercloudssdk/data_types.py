@@ -1,7 +1,6 @@
 from .models import ResourceID
 
 # Note: these need to stay in sync with idp/userstore/datatype/constants.go
-ColumnDataTypeAddress = ResourceID(name="address")
 ColumnDataTypeBirthdate = ResourceID(name="birthdate")
 ColumnDataTypeBoolean = ResourceID(name="boolean")
 ColumnDataTypeDate = ResourceID(name="date")
