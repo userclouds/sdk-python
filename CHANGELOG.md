@@ -2,6 +2,8 @@
 
 ## UNPUBLISHED
 
+## 1.7.0
+
 - Update userstore sample to exercise partial update columns
 - Add methods for creating, retrieving, updating, and deleting ColumnDataTypes
 - Add data_type field to Column that refers to a ColumnDataType
