@@ -123,14 +123,17 @@ class AsyncClient:
     async def ListUsersAsync(
         self,
         limit: int = 0,
-        starting_after: uuid.UUID | None = None,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
         email: str | None = None,
     ) -> list[UserResponse]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         if email is not None:
             params["email"] = email
         params["version"] = "3"
@@ -211,13 +214,18 @@ class AsyncClient:
         return ColumnDataType.from_json(resp_json)
 
     async def ListColumnDataTypesAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[ColumnDataType]:
         params: dict[str, int | str] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = await self._get_async("/userstore/config/datatypes", params=params)
         dataTypes = [
@@ -258,13 +266,18 @@ class AsyncClient:
         return Column.from_json(resp_json)
 
     async def ListColumnsAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Column]:
         params: dict[str, int | str] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = await self._get_async("/userstore/config/columns", params=params)
         columns = [Column.from_json(col) for col in resp_json["data"]]
@@ -301,13 +314,18 @@ class AsyncClient:
         return Purpose.from_json(json_resp)
 
     async def ListPurposesAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Purpose]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = await self._get_async("/userstore/config/purposes", params=params)
         purposes = [Purpose.from_json(p) for p in resp_json["data"]]
@@ -504,13 +522,18 @@ class AsyncClient:
             raise err
 
     async def ListAccessPolicyTemplatesAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ):
         params: dict[str, int | str] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = await self._get_async(
             "/tokenizer/policies/accesstemplate", params=params
@@ -564,13 +587,18 @@ class AsyncClient:
             raise err
 
     async def ListAccessPoliciesAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ):
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = await self._get_async("/tokenizer/policies/access", params=params)
 
@@ -618,13 +646,18 @@ class AsyncClient:
             raise err
 
     async def ListTransformersAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ):
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = await self._get_async(
             "/tokenizer/policies/transformation", params=params
@@ -661,13 +694,18 @@ class AsyncClient:
         return Accessor.from_json(j)
 
     async def ListAccessorsAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Accessor]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = await self._get_async("/userstore/config/accessors", params=params)
 
@@ -682,14 +720,30 @@ class AsyncClient:
         return Accessor.from_json(resp_json)
 
     async def ExecuteAccessorAsync(
-        self, accessor_id: uuid.UUID, context: dict, selector_values: list
+        self,
+        accessor_id: uuid.UUID,
+        context: dict,
+        selector_values: list,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list:
         body = {
             "accessor_id": accessor_id,
             "context": context,
             "selector_values": selector_values,
         }
-        return await self._post_async("/userstore/api/accessors", json_data=body)
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
+
+        return await self._post_async(
+            "/userstore/api/accessors", json_data=body, params=params
+        )
 
     # Mutator Operations
 
@@ -715,13 +769,18 @@ class AsyncClient:
         return Mutator.from_json(resp_json)
 
     async def ListMutatorsAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Mutator]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = await self._get_async("/userstore/config/mutators", params=params)
 
@@ -821,13 +880,18 @@ class AsyncClient:
     # AuthZ Operations
 
     async def ListObjectsAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Object]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = await self._get_async("/authz/objects", params=params)
 
@@ -856,13 +920,18 @@ class AsyncClient:
         return await self._delete_async(f"/authz/objects/{id}")
 
     async def ListEdgesAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Edge]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = await self._get_async("/authz/edges", params=params)
 
@@ -889,13 +958,18 @@ class AsyncClient:
         return await self._delete_async(f"/authz/edges/{id}")
 
     async def ListObjectTypesAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[ObjectType]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = await self._get_async("/authz/objecttypes", params=params)
 
@@ -924,13 +998,18 @@ class AsyncClient:
         return await self._delete_async(f"/authz/objecttypes/{id}")
 
     async def ListEdgeTypesAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[EdgeType]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = await self._get_async("/authz/edgetypes", params=params)
 
@@ -959,13 +1038,18 @@ class AsyncClient:
         return await self._delete_async(f"/authz/edgetypes/{id}")
 
     async def ListOrganizationsAsync(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Organization]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = await self._get_async("/authz/organizations", params=params)
 

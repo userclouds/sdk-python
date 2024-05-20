@@ -121,14 +121,17 @@ class Client:
     def ListUsers(
         self,
         limit: int = 0,
-        starting_after: uuid.UUID | None = None,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
         email: str | None = None,
     ) -> list[UserResponse]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         if email is not None:
             params["email"] = email
         params["version"] = "3"
@@ -205,13 +208,18 @@ class Client:
         return ColumnDataType.from_json(resp_json)
 
     def ListColumnDataTypes(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[ColumnDataType]:
         params: dict[str, int | str] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = self._get("/userstore/config/datatypes", params=params)
         dataTypes = [
@@ -248,13 +256,18 @@ class Client:
         return Column.from_json(resp_json)
 
     def ListColumns(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Column]:
         params: dict[str, int | str] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = self._get("/userstore/config/columns", params=params)
         columns = [Column.from_json(col) for col in resp_json["data"]]
@@ -289,13 +302,18 @@ class Client:
         return Purpose.from_json(json_resp)
 
     def ListPurposes(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Purpose]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = self._get("/userstore/config/purposes", params=params)
         purposes = [Purpose.from_json(p) for p in resp_json["data"]]
@@ -490,13 +508,18 @@ class Client:
             raise err
 
     def ListAccessPolicyTemplates(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ):
         params: dict[str, int | str] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = self._get("/tokenizer/policies/accesstemplate", params=params)
 
@@ -542,13 +565,18 @@ class Client:
             raise err
 
     def ListAccessPolicies(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ):
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = self._get("/tokenizer/policies/access", params=params)
 
@@ -591,12 +619,19 @@ class Client:
                 return transformer
             raise err
 
-    def ListTransformers(self, limit: int = 0, starting_after: uuid.UUID | None = None):
+    def ListTransformers(
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
+    ):
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = self._get("/tokenizer/policies/transformation", params=params)
         transformers = [Transformer.from_json(tf) for tf in resp_json["data"]]
@@ -631,13 +666,18 @@ class Client:
         return Accessor.from_json(j)
 
     def ListAccessors(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Accessor]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         resp_json = self._get("/userstore/config/accessors", params=params)
 
@@ -652,14 +692,28 @@ class Client:
         return Accessor.from_json(resp_json)
 
     def ExecuteAccessor(
-        self, accessor_id: uuid.UUID, context: dict, selector_values: list
+        self,
+        accessor_id: uuid.UUID,
+        context: dict,
+        selector_values: list,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list:
         body = {
             "accessor_id": accessor_id,
             "context": context,
             "selector_values": selector_values,
         }
-        return self._post("/userstore/api/accessors", json_data=body)
+        params = {}
+        if limit > 0:
+            params["limit"] = limit
+        if starting_after is not None:
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
+
+        return self._post("/userstore/api/accessors", json_data=body, params=params)
 
     # Mutator Operations
 
@@ -683,13 +737,18 @@ class Client:
         return Mutator.from_json(resp_json)
 
     def ListMutators(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Mutator]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = self._get("/userstore/config/mutators", params=params)
 
@@ -787,13 +846,18 @@ class Client:
     # AuthZ Operations
 
     def ListObjects(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Object]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = self._get("/authz/objects", params=params)
 
@@ -818,13 +882,18 @@ class Client:
         return self._delete(f"/authz/objects/{id}")
 
     def ListEdges(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Edge]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = self._get("/authz/edges", params=params)
 
@@ -849,13 +918,18 @@ class Client:
         return self._delete(f"/authz/edges/{id}")
 
     def ListObjectTypes(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[ObjectType]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = self._get("/authz/objecttypes", params=params)
 
@@ -884,13 +958,18 @@ class Client:
         return self._delete(f"/authz/objecttypes/{id}")
 
     def ListEdgeTypes(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[EdgeType]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = self._get("/authz/edgetypes", params=params)
 
@@ -919,13 +998,18 @@ class Client:
         return self._delete(f"/authz/edgetypes/{id}")
 
     def ListOrganizations(
-        self, limit: int = 0, starting_after: uuid.UUID | None = None
+        self,
+        limit: int = 0,
+        starting_after: str | None = None,
+        ending_before: str | None = None,
     ) -> list[Organization]:
         params: dict[str, str | int] = {}
         if limit > 0:
             params["limit"] = limit
         if starting_after is not None:
-            params["starting_after"] = f"id:{starting_after}"
+            params["starting_after"] = starting_after
+        if ending_before is not None:
+            params["ending_before"] = ending_before
         params["version"] = "3"
         j = self._get("/authz/organizations", params=params)
 
@@ -1056,9 +1140,14 @@ class Client:
             raise UserCloudsSDKError.from_response(resp)
         return ucjson.loads(resp.text)
 
-    def _post(self, url, json_data: dict | str | None = None) -> dict | list:
+    def _post(
+        self,
+        url,
+        json_data: dict | str | None = None,
+        params: dict[str, str | int] | None = None,
+    ) -> dict | list:
         headers, content = self._prep_json_data(json_data)
-        resp = self._client.post(url, headers=headers, content=content)
+        resp = self._client.post(url, params=params, headers=headers, content=content)
         if resp.status_code >= 400:
             raise UserCloudsSDKError.from_response(resp)
         return ucjson.loads(resp.text)
