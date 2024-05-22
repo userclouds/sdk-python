@@ -2,6 +2,8 @@
 
 ## UNPUBLISHED
 
+- Breaking change: Add "ending_before" argument to all paginated methods, add pagination to ExecuteAccessor, change "starting_after" and "ending_before" to be str instead of uuid
+
 ## 1.7.0
 
 - Update userstore sample to exercise partial update columns

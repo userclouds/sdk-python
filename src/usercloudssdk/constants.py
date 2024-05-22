@@ -5,6 +5,9 @@ MUTATOR_COLUMN_CURRENT_VALUE = "UCCUR-7f55f479-3822-4976-a8a9-b789d5c6f152"
 
 _JSON_CONTENT_TYPE = "application/json"
 
+PAGINATION_CURSOR_BEGIN = ""
+PAGINATION_CURSOR_END = "end"
+
 
 @unique
 class AuthnType(Enum):
