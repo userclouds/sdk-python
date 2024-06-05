@@ -1,10 +1,11 @@
 # Changelog
 
-## UNPUBLISHED
+## 1.8.0 - UNPUBLISHED
 
 - Breaking change: Add "ending_before" argument to all paginated methods, add pagination to ExecuteAccessor, change "starting_after" and "ending_before" to be str instead of uuid
+- Add the ability to cache the access token globally (in process) and share it across clients instances. Pass the optional `use_global_cache_for_token=true` to the client in order to enable.
 
-## 1.7.0
+## 1.7.0 - 09-05-2024
 
 - Update userstore sample to exercise partial update columns
 - Add methods for creating, retrieving, updating, and deleting ColumnDataTypes
@@ -13,7 +14,7 @@
 - Add ColumnDataType resource IDs for native ColumnDataTypes
 - Update userstore_sample.py to interact with ColumnDataTypes
 
-## 1.6.1
+## 1.6.1 - Not published
 
 - Add SDK method for data import via ExecuteMutator
 

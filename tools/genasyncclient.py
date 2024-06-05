@@ -8,13 +8,10 @@ non_auto_generated_header = """from __future__ import annotations
 
 import asyncio
 import base64
-import time
 import urllib.parse
 import uuid
 from dataclasses import asdict
 from pathlib import Path
-
-import jwt
 
 from . import ucjson
 from .client_helpers import _SDK_VERSION, _id_from_identical_conflict, _read_env
@@ -43,6 +40,7 @@ from .models import (
     UpdateColumnRetentionDurationsRequest,
     UserResponse,
 )
+from .token import cache_token, get_cached_token, is_token_expiring
 from .uchttpclient import create_default_uc_http_async_client
 
 
@@ -64,6 +62,7 @@ class AsyncClient:
         client_secret: str,
         client_factory=create_default_uc_http_async_client,
         session_name: str | None = None,
+        use_global_cache_for_token: bool = False,
         **kwargs,
     ):
         self._authorization = base64.b64encode(
@@ -72,9 +71,9 @@ class AsyncClient:
                 "ISO-8859-1",
             )
         ).decode("ascii")
-
         self._client = client_factory(base_url=url, **kwargs)
         self._access_token: str | None = None  # lazy loaded
+        self._use_global_cache_for_token = use_global_cache_for_token
         self._access_token_lock = asyncio.Lock()
         base_ua = f"UserClouds Python SDK v{_SDK_VERSION}"
         self._common_headers = {
@@ -85,6 +84,10 @@ class AsyncClient:
 
 non_auto_generated_footer = """
     async def _get_access_token_async(self) -> str:
+        if self._use_global_cache_for_token:
+            token = get_cached_token(self._authorization)
+            if token:
+                return token
         # Encode the client ID and client secret
         headers = {
             "Authorization": f"Basic {self._authorization}",
@@ -101,7 +104,10 @@ non_auto_generated_footer = """
         if resp.status_code >= 400:
             raise UserCloudsSDKError.from_response(resp)
         json_data = ucjson.loads(resp.text)
-        return json_data.get("access_token")
+        token = json_data["access_token"]
+        if self._use_global_cache_for_token:
+            cache_token(self._authorization, token)
+        return token
 
     async def _refresh_access_token_if_needed_async(self) -> None:
         if self._access_token is None:
@@ -110,23 +116,9 @@ non_auto_generated_footer = """
                     self._access_token = await self._get_access_token_async()
                     return
 
-        # TODO: this takes advantage of an implementation detail that we use JWTs for
-        # access tokens, but we should probably either expose an endpoint to verify
-        # expiration time, or expect to retry requests with a well-formed error, or
-        # change our bearer token format in time.
-        if (
-            jwt.decode(self._access_token, options={"verify_signature": False}).get(
-                "exp"
-            )
-            < time.time()
-        ):
+        if is_token_expiring(self._access_token):
             async with self._access_token_lock:
-                if (
-                    jwt.decode(
-                        self._access_token, options={"verify_signature": False}
-                    ).get("exp")
-                    < time.time()
-                ):
+                if is_token_expiring(self._access_token):
                     self._access_token = await self._get_access_token_async()
 
     # Request Helpers
