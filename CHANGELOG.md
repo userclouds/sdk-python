@@ -1,9 +1,10 @@
 # Changelog
 
-## 1.8.0 - UNPUBLISHED
+## 1.8.0 - 19-07-2024
 
 - Breaking change: Add "ending_before" argument to all paginated methods, add pagination to ExecuteAccessor, change "starting_after" and "ending_before" to be str instead of uuid
 - Add the ability to cache the access token globally (in process) and share it across clients instances. Pass the optional `use_global_cache_for_token=true` to the client in order to enable.
+- Update tokenizer_sample.py to properly create test Transformer
 
 ## 1.7.0 - 09-05-2024
 
