@@ -5,6 +5,7 @@ import os
 
 from usercloudssdk.client import Client
 from usercloudssdk.constants import DataType, PolicyType, TransformType
+from usercloudssdk.data_types import ColumnDataTypeString
 from usercloudssdk.errors import UserCloudsSDKError
 from usercloudssdk.models import (
     AccessPolicy,
@@ -126,7 +127,11 @@ def test_access_policies(client: Client):
 def test_transformers(client: Client):
     new_gp = Transformer(
         name="test_transformer",
+        input_data_type=ColumnDataTypeString,
         input_type=DataType.STRING,
+        output_data_type=ColumnDataTypeString,
+        output_type=DataType.STRING,
+        reuse_existing_token=False,
         transform_type=TransformType.PASSTHROUGH,
         function="function transform(x, y) { return 'token' };",
         parameters="{}",
