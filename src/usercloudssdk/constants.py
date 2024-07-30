@@ -8,6 +8,9 @@ _JSON_CONTENT_TYPE = "application/json"
 PAGINATION_CURSOR_BEGIN = ""
 PAGINATION_CURSOR_END = "end"
 
+PAGINATION_SORT_ASCENDING = "ascending"
+PAGINATION_SORT_DESCENDING = "descending"
+
 
 @unique
 class AuthnType(Enum):

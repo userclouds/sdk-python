@@ -124,17 +124,26 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
-        email: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
+        organization_id: str | None = None,
     ) -> list[UserResponse]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
-        if email is not None:
-            params["email"] = email
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
+        if organization_id is not None:
+            params["organization_id"] = organization_id
         params["version"] = "3"
         resp_json = await self._get_async("/authn/users", params=params)
 
@@ -217,14 +226,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[ColumnDataType]:
         params: dict[str, int | str] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         resp_json = await self._get_async("/userstore/config/datatypes", params=params)
         dataTypes = [
@@ -269,14 +287,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[Column]:
         params: dict[str, int | str] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         resp_json = await self._get_async("/userstore/config/columns", params=params)
         columns = [Column.from_json(col) for col in resp_json["data"]]
@@ -317,14 +344,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[Purpose]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         resp_json = await self._get_async("/userstore/config/purposes", params=params)
         purposes = [Purpose.from_json(p) for p in resp_json["data"]]
@@ -525,14 +561,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ):
         params: dict[str, int | str] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         resp_json = await self._get_async(
             "/tokenizer/policies/accesstemplate", params=params
@@ -590,14 +635,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ):
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         resp_json = await self._get_async("/tokenizer/policies/access", params=params)
 
@@ -649,14 +703,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ):
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         resp_json = await self._get_async(
             "/tokenizer/policies/transformation", params=params
@@ -697,14 +760,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[Accessor]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         resp_json = await self._get_async("/userstore/config/accessors", params=params)
 
@@ -726,19 +798,25 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list:
         body = {
             "accessor_id": accessor_id,
             "context": context,
             "selector_values": selector_values,
         }
-        params = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
+        params: dict[str, str | int] = {}
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
 
         return await self._post_async(
             "/userstore/api/accessors", json_data=body, params=params
@@ -772,14 +850,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[Mutator]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         j = await self._get_async("/userstore/config/mutators", params=params)
 
@@ -883,14 +970,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[Object]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         j = await self._get_async("/authz/objects", params=params)
 
@@ -923,14 +1019,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[Edge]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         j = await self._get_async("/authz/edges", params=params)
 
@@ -961,14 +1066,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[ObjectType]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         j = await self._get_async("/authz/objecttypes", params=params)
 
@@ -1001,14 +1115,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[EdgeType]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         j = await self._get_async("/authz/edgetypes", params=params)
 
@@ -1041,14 +1164,23 @@ class AsyncClient:
         limit: int = 0,
         starting_after: str | None = None,
         ending_before: str | None = None,
+        filter_clause: str | None = None,
+        sort_key: str | None = None,
+        sort_order: str | None = None,
     ) -> list[Organization]:
         params: dict[str, str | int] = {}
-        if limit > 0:
-            params["limit"] = limit
-        if starting_after is not None:
-            params["starting_after"] = starting_after
         if ending_before is not None:
             params["ending_before"] = ending_before
+        if filter_clause is not None:
+            params["filter"] = filter_clause
+        if limit > 0:
+            params["limit"] = limit
+        if sort_key is not None:
+            params["sort_key"] = sort_key
+        if sort_order is not None:
+            params["sort_order"] = sort_order
+        if starting_after is not None:
+            params["starting_after"] = starting_after
         params["version"] = "3"
         j = await self._get_async("/authz/organizations", params=params)
 

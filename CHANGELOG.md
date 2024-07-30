@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0 - 30-07-2024
+
+- Remove optional "email" argument from ListUsers, since the handler ignores it.
+- Add optional "organization_id" argument to ListUsers, since the handler supports it.
+- Add optional "sort_key", "sort_order", and "filter" pagination arguments to all non-accessor paginated methods.
+- Add optional "sort_key" and "sort_order" arguments to ExecuteAccessor.
+- Update userstore sample to exercise multi-key accessor pagination.
+
 ## 1.8.0 - 19-07-2024
 
 - Breaking change: Add "ending_before" argument to all paginated methods, add pagination to ExecuteAccessor, change "starting_after" and "ending_before" to be str instead of uuid

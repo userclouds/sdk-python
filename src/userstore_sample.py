@@ -10,6 +10,10 @@ import warnings
 from usercloudssdk.asyncclient import AsyncClient
 from usercloudssdk.client import Client
 from usercloudssdk.constants import (
+    PAGINATION_CURSOR_BEGIN,
+    PAGINATION_CURSOR_END,
+    PAGINATION_SORT_ASCENDING,
+    PAGINATION_SORT_DESCENDING,
     ColumnIndexType,
     DataLifeCycleState,
     DataType,
@@ -68,6 +72,7 @@ url = "<REPLACE ME>"
 # up after execution of the sample app.
 class Names:
     accessorMarketing: str
+    accessorPagination: str
     accessorPhoneToken: str
     accessorSecurity: str
     accessorSupport: str
@@ -96,6 +101,7 @@ class Names:
     ) -> None:
         prefix = f"PySample{random.randint(1, 100000)}"
         self.accessorMarketing = f"{prefix}MarketingAccessor"
+        self.accessorPagination = f"{prefix}PaginationAccessor"
         self.accessorPhoneToken = f"{prefix}PhoneTokenAccessor"
         self.accessorSecurity = f"{prefix}SecurityAccessor"
         self.accessorSupport = f"{prefix}SupportAccessor"
@@ -610,11 +616,33 @@ function id(len) {
     )
     acc_phone_token = client.CreateAccessor(acc_phone_token, if_not_exists=True)
 
+    acc_pagination = Accessor(
+        id=None,
+        name=names.accessorPagination,
+        description="Accessor for illustrating pagination",
+        columns=[
+            ColumnOutputConfig(
+                column=ResourceID(name="id"),
+                transformer=ResourceID(id=TransformerPassThrough.id),
+            ),
+            ColumnOutputConfig(
+                column=ResourceID(name=names.columnEmail),
+                transformer=ResourceID(id=TransformerPassThrough.id),
+            ),
+        ],
+        access_policy=ResourceID(id=AccessPolicyOpen.id),
+        selector_config=UserSelectorConfig("{id} = ANY(?)"),
+        purposes=[ResourceID(name="operational")],
+        token_access_policy=ResourceID(id=AccessPolicyOpen.id),
+        data_life_cycle_state=DataLifeCycleState.LIVE,
+    )
+    acc_pagination = client.CreateAccessor(acc_pagination, if_not_exists=True)
+
     # Mutators are configurable APIs that allow a client to write data to the User
     # Store. Mutators (setters) can be thought of as the complement to accessors
     # (getters). Here we create mutator to update the user's phone number, shipping
     # addresses, and billing address, and another mutator for updating email address.
-    phone_address_mutator = Mutator(
+    mut_phone_address = Mutator(
         id=None,
         name=names.mutatorPhoneAddress,
         description="Mutator for updating phone number and addresses",
@@ -635,16 +663,14 @@ function id(len) {
         access_policy=ResourceID(id=AccessPolicyOpen.id),
         selector_config=UserSelectorConfig("{id} = ?"),
     )
-    phone_address_mutator = client.CreateMutator(
-        phone_address_mutator, if_not_exists=True
-    )
+    mut_phone_address = client.CreateMutator(mut_phone_address, if_not_exists=True)
     # illustrate updating, getting, and listing mutators
-    phone_address_mutator.description = "A new description"
-    phone_address_mutator = client.UpdateMutator(phone_address_mutator)
-    phone_address_mutator = client.GetMutator(phone_address_mutator.id)
+    mut_phone_address.description = "A new description"
+    mut_phone_address = client.UpdateMutator(mut_phone_address)
+    mut_phone_address = client.GetMutator(mut_phone_address.id)
     client.ListMutators()
 
-    email_mutator = Mutator(
+    mut_email = Mutator(
         id=None,
         name=names.mutatorEmail,
         description="Mutator for updating email",
@@ -657,10 +683,16 @@ function id(len) {
         access_policy=ResourceID(id=AccessPolicyOpen.id),
         selector_config=UserSelectorConfig("{id} = ?"),
     )
-    email_mutator = client.CreateMutator(email_mutator, if_not_exists=True)
-    return (acc_support, acc_security, acc_marketing, acc_phone_token), (
-        phone_address_mutator,
-        email_mutator,
+    mut_email = client.CreateMutator(mut_email, if_not_exists=True)
+    return (
+        acc_support,
+        acc_security,
+        acc_marketing,
+        acc_phone_token,
+        acc_pagination,
+    ), (
+        mut_phone_address,
+        mut_email,
     )
 
 
@@ -672,22 +704,20 @@ def userstore_example(
     accessors: tuple[Accessor, ...],
     mutators: tuple[Mutator, ...],
 ) -> None:
-    assert len(accessors) == 4
+    assert len(accessors) == 5
     assert len(mutators) == 2
-    phone_address_mutator, email_mutator = mutators
-    acc_support, acc_security, acc_marketing, acc_phone_token = accessors
+    mut_phone_address, mut_email = mutators
+    acc_support, acc_security, acc_marketing, acc_phone_token, acc_pagination = (
+        accessors
+    )
     # Just make sure we unpacked stuff correctly
-    assert phone_address_mutator.name == names.mutatorPhoneAddress
-    assert email_mutator.name == names.mutatorEmail
+    assert mut_phone_address.name == names.mutatorPhoneAddress
+    assert mut_email.name == names.mutatorEmail
     assert acc_support.name == names.accessorSupport
     assert acc_security.name == names.accessorSecurity
     assert acc_marketing.name == names.accessorMarketing
     assert acc_phone_token.name == names.accessorPhoneToken
-
-    # delete any existing test users with the email address for their AuthN
-    users = client.ListUsers(email=names.userEmail)
-    for user in users:
-        client.DeleteUser(user.id)
+    assert acc_pagination.name == names.accessorPagination
 
     # create a user
     uid = client.CreateUser()
@@ -709,7 +739,7 @@ def userstore_example(
 
     # create and initialize a user with email address
     uid = client.CreateUserWithMutator(
-        mutator_id=email_mutator.id,
+        mutator_id=mut_email.id,
         context={},
         row_data={
             names.columnEmail: {
@@ -724,7 +754,7 @@ def userstore_example(
 
     # set the user's info using the mutator
     client.ExecuteMutator(
-        mutator_id=phone_address_mutator.id,
+        mutator_id=mut_phone_address.id,
         context={},
         selector_values=[uid],
         row_data={
@@ -814,6 +844,147 @@ def userstore_example(
 
     if not client.DeleteUser(uid):
         warnings.warn(f"failed to delete user - {uid}")
+
+    ## demonstrate accessor pagination
+
+    # create test users
+
+    test_user_ids: list[uuid.UUID] = []
+    for i in range(50):
+        user_email = f"{names.prefix}User_{i:0>2}@foo.org"
+        test_user_id = client.CreateUserWithMutator(
+            mutator_id=mut_email.id,
+            context={},
+            row_data={
+                names.columnEmail: {
+                    "value": user_email,
+                    "purpose_additions": [
+                        {"Name": "operational"},
+                    ],
+                },
+            },
+            region=user_region,
+        )
+        test_user_ids.append(test_user_id)
+
+    # ascending forward pagination
+
+    paginationExecute(
+        client=client,
+        names=names,
+        accessor_id=acc_pagination.id,
+        description="forward ascending",
+        sort_order=PAGINATION_SORT_ASCENDING,
+        user_ids=test_user_ids,
+        starting_after=PAGINATION_CURSOR_BEGIN,
+    )
+
+    # descending forward pagination
+
+    paginationExecute(
+        client=client,
+        names=names,
+        accessor_id=acc_pagination.id,
+        description="forward descending",
+        sort_order=PAGINATION_SORT_DESCENDING,
+        user_ids=test_user_ids,
+        starting_after=PAGINATION_CURSOR_BEGIN,
+    )
+
+    # ascending backward pagination
+
+    paginationExecute(
+        client=client,
+        names=names,
+        accessor_id=acc_pagination.id,
+        description="backward ascending",
+        sort_order=PAGINATION_SORT_ASCENDING,
+        user_ids=test_user_ids,
+        ending_before=PAGINATION_CURSOR_END,
+    )
+
+    # ascending backward pagination
+
+    paginationExecute(
+        client=client,
+        names=names,
+        accessor_id=acc_pagination.id,
+        description="backward descending",
+        sort_order=PAGINATION_SORT_DESCENDING,
+        user_ids=test_user_ids,
+        ending_before=PAGINATION_CURSOR_END,
+    )
+
+    # delete test users
+
+    for test_user_id in test_user_ids:
+        client.DeleteUser(test_user_id)
+
+
+def paginationExecute(
+    client: Client,
+    names: Names,
+    accessor_id: uuid.UUID,
+    description: str,
+    sort_order: str,
+    user_ids: list[uuid.UUID],
+    starting_after: str | None = None,
+    ending_before: str | None = None,
+):
+    cursor: str | None = starting_after
+    if ending_before is not None:
+        cursor = ending_before
+
+    print(f"\nexecuting {description} pagination accessor with cursor '{cursor}'\n")
+
+    resp = client.ExecuteAccessor(
+        accessor_id=accessor_id,
+        context={},
+        selector_values=[user_ids],
+        limit=25,
+        starting_after=starting_after,
+        ending_before=ending_before,
+        sort_key=f"{names.columnEmail},id",
+        sort_order=sort_order,
+    )
+
+    rows = resp["data"]
+
+    resultDesc = f"- returned {len(rows)} rows"
+    if resp["has_next"]:
+        nextCursor = resp["next"]
+        resultDesc = f"{resultDesc}, Next = '{nextCursor}'"
+    if resp["has_prev"]:
+        prevCursor = resp["prev"]
+        resultDesc = f"{resultDesc}, Prev = '{prevCursor}'"
+
+    print(f"{resultDesc}\n")
+
+    for row in rows:
+        print(f"-- {row}")
+
+    if starting_after is not None:
+        if resp["has_next"]:
+            paginationExecute(
+                client=client,
+                names=names,
+                accessor_id=accessor_id,
+                description=description,
+                sort_order=sort_order,
+                user_ids=user_ids,
+                starting_after=resp["next"],
+            )
+    elif ending_before is not None:
+        if resp["has_prev"]:
+            paginationExecute(
+                client=client,
+                names=names,
+                accessor_id=accessor_id,
+                description=description,
+                sort_order=sort_order,
+                user_ids=user_ids,
+                ending_before=resp["prev"],
+            )
 
 
 def cleanup(
