@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.1 - 05-08-2024
+
+- Fix bad token expiration check
+
 ## 1.9.0 - 30-07-2024
 
 - Remove optional "email" argument from ListUsers, since the handler ignores it.

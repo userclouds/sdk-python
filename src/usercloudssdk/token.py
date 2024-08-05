@@ -30,4 +30,4 @@ def is_token_expiring(token: str | None) -> bool:
     expiration_time = decoded_token.get("exp")
     if not expiration_time:
         return True
-    return expiration_time > time.time()
+    return expiration_time < time.time()
