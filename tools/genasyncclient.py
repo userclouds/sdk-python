@@ -151,10 +151,13 @@ non_auto_generated_footer = """
         return ucjson.loads(resp.text)
 
     async def _post_async(
-        self, url, json_data: dict | str | None = None
+        self,
+        url,
+        json_data: dict | str | None = None,
+        params: dict[str, str | int] | None = None,
     ) -> dict | list:
         headers, content = await self._prep_json_data_async(json_data)
-        resp = await self._client.post_async(url, headers=headers, content=content)
+        resp = await self._client.post_async(url, params=params, headers=headers, content=content)
         if resp.status_code >= 400:
             raise UserCloudsSDKError.from_response(resp)
         return ucjson.loads(resp.text)

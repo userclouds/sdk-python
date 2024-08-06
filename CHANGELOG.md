@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.2 - 06-05-2024
+
+- Fix missing parameter in \_post_async for AsyncClient
+
 ## 1.9.1 - 05-08-2024
 
 - Fix bad token expiration check
