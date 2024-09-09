@@ -572,12 +572,19 @@ class Client:
         return templates
 
     def GetAccessPolicyTemplate(self, rid: ResourceID):
-        if rid.id is not None:
+        if hasattr(rid, "id"):
             resp_json = self._get(f"/tokenizer/policies/accesstemplate/{rid.id}")
-        elif rid.name is not None:
-            resp_json = self._get(f"/tokenizer/policies/accesstemplate?name={rid.name}")
-
-        return AccessPolicyTemplate.from_json(resp_json)
+            return AccessPolicyTemplate.from_json(resp_json)
+        elif hasattr(rid, "name"):
+            resp_json = self._get(
+                f"/tokenizer/policies/accesstemplate?template_name={rid.name}"
+            )
+            if len(resp_json["data"]) == 1:
+                return AccessPolicyTemplate.from_json(resp_json["data"][0])
+            raise UserCloudsSDKError(
+                f"Access Policy Template with name {rid.name} not found", 404
+            )
+        raise UserCloudsSDKError("Invalid ResourceID", 400)
 
     def UpdateAccessPolicyTemplate(self, access_policy_template: AccessPolicyTemplate):
         resp_json = self._put(
@@ -638,12 +645,17 @@ class Client:
         return policies
 
     def GetAccessPolicy(self, rid: ResourceID):
-        if rid.id is not None:
+        if hasattr(rid, "id"):
             resp_json = self._get(f"/tokenizer/policies/access/{rid.id}")
-        elif rid.name is not None:
-            resp_json = self._get(f"/tokenizer/policies/access?name={rid.name}")
-
-        return AccessPolicy.from_json(resp_json)
+            return AccessPolicy.from_json(resp_json)
+        elif hasattr(rid, "name"):
+            resp_json = self._get(f"/tokenizer/policies/access?policy_name={rid.name}")
+            if len(resp_json["data"]) == 1:
+                return AccessPolicy.from_json(resp_json["data"][0])
+            raise UserCloudsSDKError(
+                f"Access Policy with name {rid.name} not found", 404
+            )
+        raise UserCloudsSDKError("Invalid ResourceID", 400)
 
     def UpdateAccessPolicy(self, access_policy: AccessPolicy):
         resp_json = self._put(
@@ -673,6 +685,19 @@ class Client:
                 return transformer
             raise err
 
+    def GetTransformer(self, rid: ResourceID):
+        if hasattr(rid, "id"):
+            resp_json = self._get(f"/tokenizer/policies/transformation/{rid.id}")
+            return Transformer.from_json(resp_json)
+        elif hasattr(rid, "name"):
+            resp_json = self._get(
+                f"/tokenizer/policies/transformation?transformer_name={rid.name}"
+            )
+            if len(resp_json["data"]) == 1:
+                return Transformer.from_json(resp_json["data"][0])
+            raise UserCloudsSDKError(f"Transformer with name {rid.name} not found", 404)
+        raise UserCloudsSDKError("Invalid ResourceID", 400)
+
     def ListTransformers(
         self,
         limit: int = 0,
@@ -700,7 +725,12 @@ class Client:
         transformers = [Transformer.from_json(tf) for tf in resp_json["data"]]
         return transformers
 
-    # Note: Transformers are immutable, so no Update method is provided.
+    def UpdateTransformer(self, transformer: Transformer):
+        resp_json = self._put(
+            f"/tokenizer/policies/transformation/{transformer.id}",
+            json_data={"transformer": transformer.__dict__},
+        )
+        return Transformer.from_json(resp_json)
 
     def DeleteTransformer(self, id: uuid.UUID):
         return self._delete(f"/tokenizer/policies/transformation/{id}")

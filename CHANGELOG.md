@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.0 - TBD
+
+- Add version to Transformer model, add client methods GetTransformer and UpdateTransformer, and fix a bug in GetAccessPolicy and GetAccessPolicyTemplate
+
 ## 1.9.2 - 06-05-2024
 
 - Fix missing parameter in \_post_async for AsyncClient

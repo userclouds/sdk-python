@@ -587,16 +587,21 @@ class AsyncClient:
         return templates
 
     async def GetAccessPolicyTemplateAsync(self, rid: ResourceID):
-        if rid.id is not None:
+        if hasattr(rid, "id"):
             resp_json = await self._get_async(
                 f"/tokenizer/policies/accesstemplate/{rid.id}"
             )
-        elif rid.name is not None:
+            return AccessPolicyTemplate.from_json(resp_json)
+        elif hasattr(rid, "name"):
             resp_json = await self._get_async(
-                f"/tokenizer/policies/accesstemplate?name={rid.name}"
+                f"/tokenizer/policies/accesstemplate?template_name={rid.name}"
             )
-
-        return AccessPolicyTemplate.from_json(resp_json)
+            if len(resp_json["data"]) == 1:
+                return AccessPolicyTemplate.from_json(resp_json["data"][0])
+            raise UserCloudsSDKError(
+                f"Access Policy Template with name {rid.name} not found", 404
+            )
+        raise UserCloudsSDKError("Invalid ResourceID", 400)
 
     async def UpdateAccessPolicyTemplateAsync(
         self, access_policy_template: AccessPolicyTemplate
@@ -659,14 +664,19 @@ class AsyncClient:
         return policies
 
     async def GetAccessPolicyAsync(self, rid: ResourceID):
-        if rid.id is not None:
+        if hasattr(rid, "id"):
             resp_json = await self._get_async(f"/tokenizer/policies/access/{rid.id}")
-        elif rid.name is not None:
+            return AccessPolicy.from_json(resp_json)
+        elif hasattr(rid, "name"):
             resp_json = await self._get_async(
-                f"/tokenizer/policies/access?name={rid.name}"
+                f"/tokenizer/policies/access?policy_name={rid.name}"
             )
-
-        return AccessPolicy.from_json(resp_json)
+            if len(resp_json["data"]) == 1:
+                return AccessPolicy.from_json(resp_json["data"][0])
+            raise UserCloudsSDKError(
+                f"Access Policy with name {rid.name} not found", 404
+            )
+        raise UserCloudsSDKError("Invalid ResourceID", 400)
 
     async def UpdateAccessPolicyAsync(self, access_policy: AccessPolicy):
         resp_json = await self._put_async(
@@ -698,6 +708,21 @@ class AsyncClient:
                 return transformer
             raise err
 
+    async def GetTransformerAsync(self, rid: ResourceID):
+        if hasattr(rid, "id"):
+            resp_json = await self._get_async(
+                f"/tokenizer/policies/transformation/{rid.id}"
+            )
+            return Transformer.from_json(resp_json)
+        elif hasattr(rid, "name"):
+            resp_json = await self._get_async(
+                f"/tokenizer/policies/transformation?transformer_name={rid.name}"
+            )
+            if len(resp_json["data"]) == 1:
+                return Transformer.from_json(resp_json["data"][0])
+            raise UserCloudsSDKError(f"Transformer with name {rid.name} not found", 404)
+        raise UserCloudsSDKError("Invalid ResourceID", 400)
+
     async def ListTransformersAsync(
         self,
         limit: int = 0,
@@ -727,7 +752,12 @@ class AsyncClient:
         transformers = [Transformer.from_json(tf) for tf in resp_json["data"]]
         return transformers
 
-    # Note: Transformers are immutable, so no Update method is provided.
+    async def UpdateTransformerAsync(self, transformer: Transformer):
+        resp_json = await self._put_async(
+            f"/tokenizer/policies/transformation/{transformer.id}",
+            json_data={"transformer": transformer.__dict__},
+        )
+        return Transformer.from_json(resp_json)
 
     async def DeleteTransformerAsync(self, id: uuid.UUID):
         return await self._delete_async(f"/tokenizer/policies/transformation/{id}")
