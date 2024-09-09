@@ -106,9 +106,9 @@ class UserSelectorConfig:
 
 class ResourceID:
     def __init__(self, id="", name="") -> None:
-        if id != "":
+        if id:
             setattr(self, "id", id)
-        if name != "":
+        if name:
             setattr(self, "name", name)
 
     def __repr__(self) -> str:
@@ -841,6 +841,7 @@ class Transformer:
     transform_type: TransformType
     function: str
     parameters: str
+    version: int
 
     def __init__(
         self,
@@ -856,6 +857,7 @@ class Transformer:
         parameters: str = "",
         input_type_constraints: ColumnConstraints | None = None,
         output_type_constraints: ColumnConstraints | None = None,
+        version: int = 0,
     ) -> None:
         self.id = id
         self.name = name
@@ -887,9 +889,10 @@ class Transformer:
             )
         else:
             self.output_type_constraints = output_type_constraints
+        self.version = version
 
     def __repr__(self) -> str:
-        return f"Transformer(id={self.id}, name={self.name}))"
+        return f"Transformer(id={self.id}, name={self.name}, input_data_type={self.input_data_type}, input_type={self.input_type}, input_type_constraints={self.input_type_constraints}, output_data_type={self.output_data_type}, output_type={self.output_type}, output_type_constraints={self.output_type_constraints}, reuse_existing_token={self.reuse_existing_token}, transform_type={self.transform_type}, function={self.function}, parameters={self.parameters}, version={self.version})"
 
     def __str__(self) -> str:
         return f"Transformer {self.name} - {self.id}"
@@ -909,6 +912,7 @@ class Transformer:
                 "transform_type": self.transform_type.value,
                 "function": self.function,
                 "parameters": self.parameters,
+                "version": self.version,
             },
         )
 
@@ -935,6 +939,7 @@ class Transformer:
             transform_type=TransformType(json_data["transform_type"]),
             function=json_data["function"],
             parameters=json_data["parameters"],
+            version=json_data["version"],
         )
 
 
