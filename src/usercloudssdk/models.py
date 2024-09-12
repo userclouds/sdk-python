@@ -402,6 +402,7 @@ class Column:
     type: DataType
     is_array: bool
     default_value: str
+    search_indexed: bool
     index_type: ColumnIndexType
     constraints: ColumnConstraints
 
@@ -413,6 +414,7 @@ class Column:
         is_array: bool,
         default_value: str,
         index_type: str | ColumnIndexType,
+        search_indexed: bool = False,
         data_type: ResourceID | None = None,
         constraints: ColumnConstraints | None = None,
     ) -> None:
@@ -422,6 +424,7 @@ class Column:
         self.type = DataType(type)
         self.is_array = is_array
         self.default_value = default_value
+        self.search_indexed = search_indexed
         self.index_type = ColumnIndexType(index_type)
         if constraints is None:
             self.constraints = ColumnConstraints(
@@ -443,6 +446,7 @@ class Column:
                 "type": self.type.value,
                 "is_array": self.is_array,
                 "default_value": self.default_value,
+                "search_indexed": self.search_indexed,
                 "index_type": self.index_type.value,
                 "constraints": self.constraints,
             }
@@ -457,6 +461,7 @@ class Column:
             type=DataType(json_data["type"]),
             is_array=json_data["is_array"],
             default_value=json_data["default_value"],
+            search_indexed=json_data["search_indexed"],
             index_type=ColumnIndexType(json_data["index_type"]),
             constraints=json_data["constraints"],
         )
@@ -530,6 +535,7 @@ class Accessor:
     selector_config: UserSelectorConfig
     purposes: list[ResourceID]
     data_life_cycle_state: DataLifeCycleState
+    use_search_index: bool
     version: int
 
     def __init__(
@@ -543,6 +549,7 @@ class Accessor:
         purposes: list[ResourceID],
         token_access_policy: ResourceID | None = None,
         data_life_cycle_state: str | DataLifeCycleState = DataLifeCycleState.LIVE,
+        use_search_index: bool = False,
         version: int = 0,
     ) -> None:
         self.id = id
@@ -554,6 +561,7 @@ class Accessor:
         self.purposes = purposes
         self.token_access_policy = token_access_policy
         self.data_life_cycle_state = DataLifeCycleState(data_life_cycle_state)
+        self.use_search_index = use_search_index
         self.version = version
 
     def to_json(self) -> str:
@@ -569,6 +577,7 @@ class Accessor:
                 "purposes": self.purposes,
                 "token_access_policy": self.token_access_policy,
                 "data_life_cycle_state": self.data_life_cycle_state.value,
+                "use_search_index": self.use_search_index,
             }
         )
 
@@ -586,6 +595,7 @@ class Accessor:
             data_life_cycle_state=DataLifeCycleState(
                 json_data["data_life_cycle_state"]
             ),
+            use_search_index=json_data["use_search_index"],
             version=json_data["version"],
         )
 

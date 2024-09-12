@@ -1,12 +1,13 @@
 # Changelog
 
-## 1.10.0 - TBD
+## 1.10.0 - 12-09-2024
 
 - Add version to Transformer model, add client methods GetTransformer and UpdateTransformer, and fix a bug in GetAccessPolicy and GetAccessPolicyTemplate
+- Add optional search_indexed field to Column model and optional use_search_index field to Accessor model
 
-## 1.9.2 - 06-05-2024
+## 1.9.2 - 06-08-2024
 
-- Fix missing parameter in \_post_async for AsyncClient
+- Fix missing parameter in _post_async for AsyncClient
 
 ## 1.9.1 - 05-08-2024
 
