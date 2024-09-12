@@ -4,6 +4,7 @@
 
 - Add version to Transformer model, add client methods GetTransformer and UpdateTransformer, and fix a bug in GetAccessPolicy and GetAccessPolicyTemplate
 - Add optional search_indexed field to Column model and optional use_search_index field to Accessor model
+- New automated release process
 
 ## 1.9.2 - 06-08-2024
 
