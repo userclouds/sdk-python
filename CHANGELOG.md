@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.0 - TBD
+
+- Move references from single token access policy in accessor to individual token access policies per column via ColumnOutputConfig
+
 ## 1.10.0 - 12-09-2024
 
 - Add version to Transformer model, add client methods GetTransformer and UpdateTransformer, and fix a bug in GetAccessPolicy and GetAccessPolicyTemplate
@@ -8,7 +12,7 @@
 
 ## 1.9.2 - 06-08-2024
 
-- Fix missing parameter in _post_async for AsyncClient
+- Fix missing parameter in \_post_async for AsyncClient
 
 ## 1.9.1 - 05-08-2024
 
