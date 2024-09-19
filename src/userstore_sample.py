@@ -606,12 +606,12 @@ function id(len) {
             ColumnOutputConfig(
                 column=ResourceID(name=names.columnPhone),
                 transformer=ResourceID(id=logging_phone_transformer.id),
+                token_access_policy=ResourceID(id=AccessPolicyOpen.id),
             ),
         ],
         access_policy=ResourceID(id=AccessPolicyOpen.id),
         selector_config=UserSelectorConfig("{id} = ?"),
         purposes=[ResourceID(name=names.purposeSecurity)],
-        token_access_policy=ResourceID(id=AccessPolicyOpen.id),
         data_life_cycle_state=DataLifeCycleState.LIVE,
     )
     acc_phone_token = client.CreateAccessor(acc_phone_token, if_not_exists=True)
@@ -633,7 +633,6 @@ function id(len) {
         access_policy=ResourceID(id=AccessPolicyOpen.id),
         selector_config=UserSelectorConfig("{id} = ANY(?)"),
         purposes=[ResourceID(name="operational")],
-        token_access_policy=ResourceID(id=AccessPolicyOpen.id),
         data_life_cycle_state=DataLifeCycleState.LIVE,
     )
     acc_pagination = client.CreateAccessor(acc_pagination, if_not_exists=True)

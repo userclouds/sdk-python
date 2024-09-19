@@ -506,22 +506,30 @@ class Purpose:
 class ColumnOutputConfig:
     column: ResourceID
     transformer: ResourceID
+    token_access_policy: ResourceID | None
 
-    def __init__(self, column: ResourceID, transformer: ResourceID) -> None:
+    def __init__(
+        self,
+        column: ResourceID,
+        transformer: ResourceID,
+        token_access_policy: ResourceID | None = None,
+    ) -> None:
         self.column = column
         self.transformer = transformer
+        self.token_access_policy = token_access_policy
 
     def __str__(self) -> str:
-        return f"ColumnOutputConfig: {self.column} - {self.transformer}"
+        return f"ColumnOutputConfig: {self.column} - {self.transformer} - {self.token_access_policy}"
 
     def __repr__(self) -> str:
-        return f"ColumnOutputConfig(column={self.column!r}, transformer={self.transformer!r})"
+        return f"ColumnOutputConfig(column={self.column!r}, transformer={self.transformer!r}, token_access_policy={self.token_access_policy!r})"
 
     @classmethod
     def from_json(cls, json_data: dict) -> ColumnOutputConfig:
         return ColumnOutputConfig(
             column=ResourceID.from_json(json_data["column"]),
             transformer=ResourceID.from_json(json_data["transformer"]),
+            token_access_policy=ResourceID.from_json(json_data["token_access_policy"]),
         )
 
 
@@ -531,7 +539,6 @@ class Accessor:
     description: str
     columns: list[ColumnOutputConfig]
     access_policy: ResourceID
-    token_access_policy: ResourceID | None
     selector_config: UserSelectorConfig
     purposes: list[ResourceID]
     data_life_cycle_state: DataLifeCycleState
@@ -547,7 +554,6 @@ class Accessor:
         access_policy: ResourceID,
         selector_config: UserSelectorConfig,
         purposes: list[ResourceID],
-        token_access_policy: ResourceID | None = None,
         data_life_cycle_state: str | DataLifeCycleState = DataLifeCycleState.LIVE,
         use_search_index: bool = False,
         version: int = 0,
@@ -559,7 +565,6 @@ class Accessor:
         self.access_policy = access_policy
         self.selector_config = selector_config
         self.purposes = purposes
-        self.token_access_policy = token_access_policy
         self.data_life_cycle_state = DataLifeCycleState(data_life_cycle_state)
         self.use_search_index = use_search_index
         self.version = version
@@ -575,7 +580,6 @@ class Accessor:
                 "access_policy": self.access_policy,
                 "selector_config": self.selector_config.to_json(),
                 "purposes": self.purposes,
-                "token_access_policy": self.token_access_policy,
                 "data_life_cycle_state": self.data_life_cycle_state.value,
                 "use_search_index": self.use_search_index,
             }
@@ -591,7 +595,6 @@ class Accessor:
             access_policy=ResourceID.from_json(json_data["access_policy"]),
             selector_config=UserSelectorConfig.from_json(json_data["selector_config"]),
             purposes=json_data["purposes"],
-            token_access_policy=ResourceID.from_json(json_data["token_access_policy"]),
             data_life_cycle_state=DataLifeCycleState(
                 json_data["data_life_cycle_state"]
             ),
