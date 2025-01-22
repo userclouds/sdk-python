@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.11.0 - TBD
+## 1.11.0 - 21-1-2024
 
 - Move references from single token access policy in accessor to individual token access policies per column via ColumnOutputConfig
 

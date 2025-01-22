@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usercloudssdk"
-version = "1.10.0"
+version = "1.11.0"
 description = "Python SDK for UserClouds"
 readme = "README.md"
 authors = [{ name = "UserClouds", email = "info@userclouds.com" }]
