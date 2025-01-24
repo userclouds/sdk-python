@@ -13,15 +13,21 @@ class UserCloudsSDKError(Exception):
         error: str | dict = "unspecified error",
         http_status_code: int = -1,
         request_id: str | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(error)
         self._err = error
         self.error_json = error if isinstance(error, dict) else None
         self.code = http_status_code
         self.request_id = request_id
+        self._headers = headers
 
     def __repr__(self):
         return f"Error({self._err}, {self.code}, {self.request_id})"
+
+    @property
+    def headers(self) -> dict[str, str] | None:
+        return self._headers
 
     @classmethod
     def from_response(cls, resp: UCHttpResponse) -> UserCloudsSDKError:
@@ -32,12 +38,14 @@ class UserCloudsSDKError(Exception):
                 error=resp_json["error"],
                 request_id=resp_json.get("request_id", request_id),
                 http_status_code=resp.status_code,
+                headers=dict(resp.headers),
             )
         else:
             return cls(
                 error=f"HTTP {resp.status_code} - {resp.text}",
                 request_id=request_id,
                 http_status_code=resp.status_code,
+                headers=dict(resp.headers),
             )
 
 
