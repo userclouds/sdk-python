@@ -1138,7 +1138,7 @@ if __name__ == "__main__":
     disable_ssl_verify = (
         os.environ.get("DEV_ONLY_DISABLE_SSL_VERIFICATION", "") == "true"
     )
-    user_region = os.environ.get("UC_REGION", Region.AWS_US_WEST_2)
+    user_region = os.environ.get("UC_REGION", Region.AWS_US_EAST_1)
     client = Client(
         url=url,
         client_id=client_id,

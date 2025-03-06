@@ -803,6 +803,7 @@ class Client:
         ending_before: str | None = None,
         sort_key: str | None = None,
         sort_order: str | None = None,
+        region: str | None = None,
     ) -> list:
         body = {
             "accessor_id": accessor_id,
@@ -820,6 +821,8 @@ class Client:
             params["sort_order"] = sort_order
         if starting_after is not None:
             params["starting_after"] = starting_after
+        if region is not None:
+            params["region"] = region
 
         return self._post("/userstore/api/accessors", json_data=body, params=params)
 
@@ -885,6 +888,7 @@ class Client:
         context: dict,
         selector_values: list,
         row_data: dict,
+        region: str | None = None,
     ) -> str:
         body = {
             "mutator_id": mutator_id,
@@ -892,6 +896,8 @@ class Client:
             "selector_values": selector_values,
             "row_data": row_data,
         }
+        if region is not None:
+            body["region"] = region
 
         j = self._post("/userstore/api/mutators", json_data=body)
         return j

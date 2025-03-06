@@ -31,5 +31,5 @@ class TestSDKSamples:
         run_tokenizer_sample(ucclient)
 
     def test_userstore(self, ucclient: Client) -> None:
-        user_region = os.environ.get("UC_REGION", Region.AWS_US_WEST_2)
+        user_region = os.environ.get("UC_REGION", Region.AWS_US_EAST_1)
         run_userstore_sample(client=ucclient, user_region=user_region)
