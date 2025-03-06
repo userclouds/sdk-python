@@ -3,6 +3,9 @@
 ## 1.12.0 - UNRELEASED
 
 - Capture HTTP response headers in UserCloudsSDKError
+- Add "aws-eu-west-1" as available user data region
+- Add table as attribute of Column model
+- Add region as optional argument for ExecuteAccessor and ExecuteMutator to restrict those calls to only act in the specified data region
 
 ## 1.11.0 - 21-1-2024
 

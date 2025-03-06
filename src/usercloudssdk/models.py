@@ -397,6 +397,7 @@ class ColumnConstraints:
 
 class Column:
     id: uuid.UUID
+    table: str
     name: str
     data_type: ResourceID | None
     type: DataType
@@ -417,6 +418,7 @@ class Column:
         search_indexed: bool = False,
         data_type: ResourceID | None = None,
         constraints: ColumnConstraints | None = None,
+        table: str = "users",
     ) -> None:
         self.id = id
         self.name = name
@@ -426,6 +428,7 @@ class Column:
         self.default_value = default_value
         self.search_indexed = search_indexed
         self.index_type = ColumnIndexType(index_type)
+        self.table = table
         if constraints is None:
             self.constraints = ColumnConstraints(
                 immutable_required=False,
@@ -441,6 +444,7 @@ class Column:
         return ucjson.dumps(
             {
                 "id": str(self.id),
+                "table": self.table,
                 "name": self.name,
                 "data_type": self.data_type,
                 "type": self.type.value,
@@ -456,6 +460,7 @@ class Column:
     def from_json(cls, json_data: dict) -> Column:
         return cls(
             id=uuid.UUID(json_data["id"]),
+            table=json_data["table"],
             name=json_data["name"],
             data_type=ResourceID.from_json(json_data["data_type"]),
             type=DataType(json_data["type"]),
@@ -467,10 +472,10 @@ class Column:
         )
 
     def __str__(self) -> str:
-        return f"Column {self.name} [{self.type}] [{self.data_type}] - {self.id}"
+        return f"Column {self.table} {self.name} [{self.type}] [{self.data_type}] - {self.id}"
 
     def __repr__(self) -> str:
-        return f"Column(id={self.id}, name={self.name}, data_type={self.data_type}, type={self.type})"
+        return f"Column(id={self.id}, table={self.table}, name={self.name}, data_type={self.data_type}, type={self.type})"
 
 
 class Purpose:
