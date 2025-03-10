@@ -837,6 +837,8 @@ class AsyncClient:
             "context": context,
             "selector_values": selector_values,
         }
+        if region is not None:
+            body["region"] = region
         params: dict[str, str | int] = {}
         if ending_before is not None:
             params["ending_before"] = ending_before
@@ -848,8 +850,6 @@ class AsyncClient:
             params["sort_order"] = sort_order
         if starting_after is not None:
             params["starting_after"] = starting_after
-        if region is not None:
-            params["region"] = region
 
         return await self._post_async(
             "/userstore/api/accessors", json_data=body, params=params
