@@ -804,6 +804,7 @@ class Client:
         sort_key: str | None = None,
         sort_order: str | None = None,
         region: str | None = None,
+        access_primary_db_only: bool | None = None,
     ) -> list:
         body = {
             "accessor_id": accessor_id,
@@ -812,6 +813,8 @@ class Client:
         }
         if region is not None:
             body["region"] = region
+        if access_primary_db_only is not None:
+            body["access_primary_db_only"] = access_primary_db_only
         params: dict[str, str | int] = {}
         if ending_before is not None:
             params["ending_before"] = ending_before
