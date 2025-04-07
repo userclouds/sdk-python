@@ -947,13 +947,21 @@ def paginationExecute(
         sort_order=sort_order,
     )
 
+    # verify that the pagination response fields are all populated
+    assert resp["next"] is not None
+    # assert resp["prev"] is not None # uncomment this line after prod has been deployed
+    assert resp["has_next"] is not None
+    assert resp["has_prev"] is not None
+
     rows = resp["data"]
 
     resultDesc = f"- returned {len(rows)} rows"
     if resp["has_next"]:
+        assert resp["next"] != PAGINATION_CURSOR_END
         nextCursor = resp["next"]
         resultDesc = f"{resultDesc}, Next = '{nextCursor}'"
     if resp["has_prev"]:
+        assert resp["prev"] != PAGINATION_CURSOR_BEGIN
         prevCursor = resp["prev"]
         resultDesc = f"{resultDesc}, Prev = '{prevCursor}'"
 
