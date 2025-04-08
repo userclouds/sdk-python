@@ -7,6 +7,7 @@
 - Add table as attribute of Column model
 - Add region as optional argument for ExecuteAccessor and ExecuteMutator to restrict those calls to only act in the specified data region
 - Add access_primary_db_only as optional argument for ExecuteAccessor. By default ExecuteAccessor will use local replicas to speed up processing, but passing in true for access_primary_db_only forces the server to read from the primary db of each user for the call
+- Modify userstore_sample.py to verify that the pagination responses are always returned with all fields, instead of omitting empty ones
 
 ## 1.11.0 - 21-1-2024
 
